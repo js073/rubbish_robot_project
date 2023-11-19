@@ -9,6 +9,10 @@ project(rubbish_robot_project)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   gmapping
+  rospy
+  roscpp
+  std_msgs
+  move_base
 )
 
 ## System dependencies are found with CMake's conventions
@@ -103,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rubbish_robot_project
-#  CATKIN_DEPENDS gmapping
+#  CATKIN_DEPENDS gmapping rospy roscpp std_msgs move_base
 #  DEPENDS system_lib
 )
 

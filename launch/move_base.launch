@@ -1,0 +1,17 @@
+<launch>
+   <master auto="start"/>
+   <!-- <remap from="base_scan" to="scan"/> -->
+   <node name="stage_ros" pkg="stage_ros" type="stageros" args="$(find pf_localisation)/data/sim_data/meeting.world"/>
+   <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find pf_localisation)/data/real_data/map.yaml"/> -->
+   <!-- <node name="gmapping" pkg="gmapping" type="slam_gmapping"/> -->
+   <include file="$(find amcl)/examples/amcl_diff.launch"/>
+   <!-- <node pkg="amcl" type="amcl" name="amcl" args="scan:=base_scan"/> -->
+
+   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find rubbish_robot_project)/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
+    <rosparam file="$(find rubbish_robot_project)/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find rubbish_robot_project)/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find rubbish_robot_project)/global_costmap_params.yaml" command="load" /> 
+    <rosparam file="$(find rubbish_robot_project)/base_local_planner_params.yaml" command="load" />
+ </node>
+</launch>
