@@ -1,0 +1,7 @@
+<launch>
+    <master auto="start"/>
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+     <arg name="port" value="9000"/>
+    </include>
+    <node pkg="rubbish_robot_project" type="main.py" name="main_control" />
+</launch>

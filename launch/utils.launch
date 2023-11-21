@@ -1,0 +1,6 @@
+<launch>
+    <master auto="start"/>
+    <node pkg="rviz" type="rviz" name="rviz"/>
+    <!-- <node pkg="stage_ros" type="stageros" name="stage" agrs="$(find pf_localisation-noetic)/data/sim_data/meeting.world"/> -->
+    <node pkg="rqt_graph" type="rqt_graph" name="graph"/>
+</launch>

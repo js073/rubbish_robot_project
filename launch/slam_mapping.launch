@@ -1,20 +1,20 @@
 <launch>
-   <master auto="start"/>
+    <!-- <master auto="start"/>  -->
+    <arg name="map_name" default="map1"/>
 
-   <remap from="base_scan" to="scan"/>
+   <node name="gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=base_scan" />
 
-   <node name="stage_ros" pkg="stage_ros" type="stageros" args="$(find pf_localisation)/data/sim_data/meeting.world"/>
-
-   <node name="gmapping" pkg="gmapping" type="slam_gmapping" output="screen"/>
-
-   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+   <node pkg="move_base" type="move_base" respawn="false" name="move_base">
         <rosparam file="$(find rubbish_robot_project)/costmap_common_params.yaml" command="load" ns="global_costmap" /> 
         <rosparam file="$(find rubbish_robot_project)/costmap_common_params.yaml" command="load" ns="local_costmap" />
         <rosparam file="$(find rubbish_robot_project)/local_costmap_params.yaml" command="load" />
         <rosparam file="$(find rubbish_robot_project)/global_costmap_params.yaml" command="load" /> 
         <rosparam file="$(find rubbish_robot_project)/base_local_planner_params.yaml" command="load" />
     </node>
-    <node pkg="rubbish_robot_project" name="auto_map" type="slam_mapping.py" output="screen"/>
+    
+    <node pkg="rubbish_robot_project" name="auto_map" type="slam_mapping.py" output="screen">
+        <param name="map_name" value="$(arg map_name)"/>
+    </node>
     <!-- <node pkg="explore_lite" type="explore" name="explore" output="screen"/> -->
     <!-- <include file="$(find explore_lite)/launch/explore.launch"/> -->
 </launch>

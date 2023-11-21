@@ -1,10 +1,10 @@
 <launch>
    <master auto="start"/>
-   <!-- <remap from="base_scan" to="scan"/> -->
-   <node name="stage_ros" pkg="stage_ros" type="stageros" args="$(find pf_localisation)/data/sim_data/meeting.world"/>
+   <remap from="base_scan" to="scan"/>
+   <!-- <node name="stage_ros" pkg="stage_ros" type="stageros" args="$(find pf_localisation)/data/sim_data/meeting.world"/> -->
    <!-- <node name="map_server" pkg="map_server" type="map_server" args="$(find pf_localisation)/data/real_data/map.yaml"/> -->
-   <!-- <node name="gmapping" pkg="gmapping" type="slam_gmapping"/> -->
-   <include file="$(find amcl)/examples/amcl_diff.launch"/>
+   <node name="gmapping" pkg="gmapping" type="slam_gmapping"/>
+   <!-- <include file="$(find amcl)/examples/amcl_diff.launch"/> -->
    <!-- <node pkg="amcl" type="amcl" name="amcl" args="scan:=base_scan"/> -->
 
    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
