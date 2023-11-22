@@ -22,23 +22,52 @@ class mt:
         if len(split_cmd) > 0:
             if split_cmd[0] == "map_start":
                 self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1" # The name that the map will be saved under
-                if self.mapping_launch == None:
-                    command =['roslaunch', 'rubbish_robot_project', 'slam_mapping.launch', 'map_name:=%s' % self.map_name]
-                    self.mapping_launch = subprocess.Popen(command, stdout=subprocess.DEVNULL)
-                    s = "Mapping has started"
-                    self.info_sender.publish(s)
-                else:
-                    s = "Mapping is already running, if you want to run a new session, then end the current one first"
-                    self.info_sender.publish(s)
+                self.mapping_start()
             elif split_cmd[0] == "map_end":
-                if self.mapping_launch != None:
-                    s = "Mapping has been complete and saved to file %s, returning to start position" % self.map_name
-                    self.info_sender.publish(s)
-                    self.map_send.publish("shutdown")
-                    # self.mapping_launch.terminate()
-                else:
-                    s = "Mapping is not running currently, so cannot be ended"
-                    self.info_sender.publish(s)
+                self.mapping_end()
+            elif split_cmd[0] == "collection_start":
+                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1"
+                self.collection_start()
+            elif split_cmd[0] == "collection_end":
+                self.collection_end()
+                
+
+    def mapping_start(self):
+        if self.mapping_launch == None:
+            command =['roslaunch', 'rubbish_robot_project', 'slam_mapping.launch', 'map_name:=%s' % self.map_name]
+            self.mapping_launch = subprocess.Popen(command, stdout=subprocess.DEVNULL)
+            s = "Mapping has started"
+            self.info_sender.publish(s)
+        else:
+            s = "Mapping is already running, if you want to run a new session, then end the current one first"
+            self.info_sender.publish(s)
+
+    def mapping_end(self):
+        if self.mapping_launch != None:
+            s = "Mapping has been complete and saved to file %s, returning to start position" % self.map_name
+            self.info_sender.publish(s)
+            self.map_send.publish("shutdown")
+        else:
+            s = "Mapping is not running currently, so cannot be ended"
+            self.info_sender.publish(s)
+
+    def collection_start(self, map_name):
+        if self.mapping_launch != None:
+            s = "Mapping is currently running, please end it or wait for it to complete"
+            self.info_sender.publish(s)
+        else: 
+            command = ['roslaunch', 'rubbish_robot_project', 'robot_task.launch', 'map_path:=~/maps/%s' % self.map_name]
+            self.collection_launch = subprocess.Popen(command, stdout=subprocess.DEVNULL)
+            s = "The collection start has started"
+            self.info_sender.publish(s)
+
+    def collection_end(self):
+        if self.mapping_launch == None: 
+            s = "Nothing to end"
+            self.info_sender.publish(s)
+        else:
+            self.collection_launch.terminate()
+            s = "The connection has been terminated"
 
     def map_cmd_callback(self, msg):
         s = "recieved message %s" % msg.data

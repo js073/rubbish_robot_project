@@ -1,0 +1,6 @@
+<launch>
+    <arg name="map_path" defualt="~/maps/map1.yaml"/>
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_path)"/>
+
+
+</launch>
