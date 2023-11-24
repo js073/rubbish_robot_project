@@ -8,6 +8,6 @@
         <arg name="world_name" value="$(arg world_file)" />
     </include> 
 
-    <include file="$(find rubbish_robot_project)/simulation/simulate_launch.launch">
+    <include file="$(find rubbish_robot_project)/p3dx_gazebo/launch/p3dx.launch">
     </include>
 </launch>

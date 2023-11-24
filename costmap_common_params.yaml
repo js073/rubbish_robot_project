@@ -5,10 +5,9 @@ inflation_radius: 0.25 # Distance from obstacles for a cost
 
 observation_sources: scan_sensor # Sensor data
 scan_sensor: {
-  sensor_frame: laser_frame,
+  sensor_frame: p3dx_tf/lms100,
   data_type: LaserScan,
-  topic: scan,
+  topic: p3dx/laser/scan,
   marking: true,
   clearing: true,
-  max_obstacle_height: 2.0,
 }
