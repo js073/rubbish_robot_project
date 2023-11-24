@@ -70,12 +70,13 @@ class mt:
             s = "Mapping is not running currently, so cannot be ended"
             self.info_sender.publish(s)
 
-    def collection_start(self, map_name):
+    def collection_start(self):
         if self.mapping_launch != None:
             s = "Mapping is currently running, please end it or wait for it to complete"
             self.info_sender.publish(s)
         else: 
-            command = ['roslaunch', 'rubbish_robot_project', 'robot_task.launch', 'map_path:=~/maps/%s' % (self.map_name+".yaml")]
+            map_path = os.path.expanduser("~/maps/") + self.map_name + ".yaml"
+            command = ['roslaunch', 'rubbish_robot_project', 'robot_task.launch', 'map_path:=%s' % map_path]
             self.collection_launch = subprocess.Popen(command, stdout=subprocess.DEVNULL)
             s = "The collection start has started"
             self.info_sender.publish(s)
