@@ -26,11 +26,30 @@ class mt:
             elif split_cmd[0] == "map_end":
                 self.mapping_end()
             elif split_cmd[0] == "collection_start":
-                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1"
+                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1" # Default map name
                 self.collection_start()
             elif split_cmd[0] == "collection_end":
                 self.collection_end()
+            elif split_cmd[0] == "map_list":
+                self.get_map_list()
                 
+
+    def get_map_list(self):
+        s = "map_list|"
+        map_dir = os.path.expanduser("~/maps/")
+        if os.path.isdir(map_dir):
+            yaml_files = []
+            folder_files = os.listdir(map_dir)
+            for f in folder_files:
+                split_filename = f.split(".")
+                if len(split_filename) > 1 and split_filename[1] == "yaml":
+                    yaml_files.append(split_filename[0])
+            s += ','.join(yaml_files)
+        self.info_sender.publish(s)
+        
+            
+
+
 
     def mapping_start(self):
         if self.mapping_launch == None:
@@ -56,7 +75,7 @@ class mt:
             s = "Mapping is currently running, please end it or wait for it to complete"
             self.info_sender.publish(s)
         else: 
-            command = ['roslaunch', 'rubbish_robot_project', 'robot_task.launch', 'map_path:=~/maps/%s' % self.map_name]
+            command = ['roslaunch', 'rubbish_robot_project', 'robot_task.launch', 'map_path:=~/maps/%s' % (self.map_name+".yaml")]
             self.collection_launch = subprocess.Popen(command, stdout=subprocess.DEVNULL)
             s = "The collection start has started"
             self.info_sender.publish(s)
