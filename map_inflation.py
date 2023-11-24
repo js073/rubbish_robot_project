@@ -3,17 +3,10 @@ from nav_msgs.msg import OccupancyGrid, MapMetaData
 import math
 import numpy as np
 import PIL.Image as im
+import time
 
-OBSTACLE_VALUE = 100
-INFLATION_SIZE = 10
-
-class mapping_inflation:
-    def __init__(self) -> None:
-        self.map_rec = rospy.Subscriber("/map", OccupancyGrid, self.map_callback, queue_size=100)
-        self.map_send = rospy.Publisher("/new_map", OccupancyGrid, queue_size=100)
-
-    def map_callback(self, msg: OccupancyGrid):
-        inflate_map(msg)
+OBSTACLE_VALUE = 100 # Value that obstacles on the grid map are given
+INFLATION_SIZE = 5 # Needs to be HALF the size of the robot
 
 # Takes an OccupancyGrid and converts it into a 2D array
 def convert_occupancy_to_2d(map: OccupancyGrid):
@@ -41,9 +34,10 @@ def inflate_map(map: OccupancyGrid, size=INFLATION_SIZE):
     for (x, y) in obstacle_coordinates:
         new_map = inflate_point(new_map, size, x, y)
 
-    map_2d_to_img(new_map)
+    # map_2d_to_img(new_map) # Generate image (testing)
     return new_map
 
+# Gets the coordinates of all map obstacles
 def get_obstacle_coordinates(map_2d: [[int]]):
     points = []
     for (y, v) in enumerate(map_2d):
@@ -52,6 +46,7 @@ def get_obstacle_coordinates(map_2d: [[int]]):
                 points.append((x, y))
     return points
 
+# Inflates the points by the speicified size
 def inflate_point(map_2d: [[int]], size: int, coord_x: int, coord_y: int):
     x_points = list(range(-size, size+1))
     y_points = list(range(-size, size+1))
@@ -69,14 +64,27 @@ def inflate_point(map_2d: [[int]], size: int, coord_x: int, coord_y: int):
 
     return map_2d
 
+# Generates an image for testing purposes
 def map_2d_to_img(map_2d: [[int]]):
     nm = np.array(map_2d)
     nm = np.reshape(nm, (4000, 4000))
     img = im.fromarray(np.uint8(nm), 'L')
-    img.save("/home/jack/test_infl.jpeg")
+    img.save("/home/jack/test_infl_%d.jpeg" % INFLATION_SIZE)
 
 
-if __name__ == "__main__":
+# FOR TESTING
+class mapping_inflation:
+    def __init__(self) -> None:
+        self.map_rec = rospy.Subscriber("/map", OccupancyGrid, self.map_callback, queue_size=100)
+        self.map_send = rospy.Publisher("/new_map", OccupancyGrid, queue_size=100)
+
+    def map_callback(self, msg: OccupancyGrid):
+        t0 = time.process_time()
+        inflate_map(msg)
+        t1 = time.process_time()
+        print("Time difference is %f seconds" % (t1-t0)) # Determines computation time
+
+if __name__ == "__main__" and False: # Set to true for testing 
     rospy.init_node("infl_map")
     mapping_inflation()
     rospy.spin()
