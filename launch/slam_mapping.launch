@@ -2,7 +2,7 @@
     <!-- <master auto="start"/>  -->
     <arg name="map_name" default="map1"/>
 
-   <node name="gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=base_scan" />
+   <node name="gmapping" pkg="gmapping" type="slam_gmapping"/>
 
    <node pkg="move_base" type="move_base" respawn="false" name="move_base">
         <rosparam file="$(find rubbish_robot_project)/costmap_common_params.yaml" command="load" ns="global_costmap" /> 

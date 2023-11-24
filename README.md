@@ -1,5 +1,7 @@
 # README
 
+See `Documentation.md` for more information on the different nodes in this project and the protocols. 
+
 ## Running the code
 1. Clone this repo into the `catkin_ws/src/`.
 2. You may need to make sure that some files have executable priveledges on your system. Inside the `rubbish_robot_project` directory run `chmod +x -R .` to make all files executable. 

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="world_file" default="$(find rubbish_robot_project)/worlds/world1.world" />
+
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="true" />
+        <arg name="world_name" value="$(arg world_file)" />
+    </include> 
+
+    <include file="$(find rubbish_robot_project)/simulation/simulate_launch.launch">
+    </include>
+</launch>
