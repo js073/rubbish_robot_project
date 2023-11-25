@@ -3,7 +3,7 @@
     <remap from="/cmd_vel" to="p3dx/cmd_vel"/>
     <arg name="map_name" default="map1"/>
 
-   <node name="gmapping" pkg="gmapping" type="slam_gmapping" agrs="scan:=p3dx/laser/scan _odom_frame:=p3dx/odom _base_frame:=p3dx_tf/base_link"/>
+   <node name="gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=p3dx/laser/scan _odom_frame:=p3dx/odom _base_frame:=p3dx_tf/base_link _temporalUpdate:=3.0 _map_update_interval:=1.0"/>
 
    <node pkg="move_base" type="move_base" respawn="false" name="move_base">
         <rosparam file="$(find rubbish_robot_project)/costmap_common_params.yaml" command="load" ns="global_costmap" /> 

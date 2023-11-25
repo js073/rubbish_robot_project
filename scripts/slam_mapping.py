@@ -17,7 +17,7 @@ import os
 class slam_mapping: 
     def __init__(self) -> None:
         uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-        self.explore = subprocess.Popen(["roslaunch", "/opt/ros/noetic/share/explore_lite/launch/explore.launch"], stdout=subprocess.DEVNULL)
+        self.explore = subprocess.Popen(["roslaunch", "rubbish_robot_project", "explore.launch"], stdout=subprocess.DEVNULL)
         self.frontiers = rospy.Subscriber("explore/frontiers", MarkerArray, self.frontier_callback, queue_size=100)
         self.info_pub = rospy.Publisher("control/info", String, queue_size=100)
         self.map_send = rospy.Publisher("/main/map_info", String, queue_size=100)
