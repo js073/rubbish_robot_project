@@ -32,7 +32,22 @@ class mt:
                 self.collection_end()
             elif split_cmd[0] == "map_list":
                 self.get_map_list()
+            elif split_cmd[0] == "robot_state":
+                self.get_robot_state()
+
                 
+    def get_robot_state(self):
+        s = "Robot state: "
+        if self.collection_launch == None and self.mapping_launch == None:
+            s += "Idle"
+        elif self.collection_launch != None:
+            s += "Robot is currently performing a collection task"
+        elif self.mapping_launch != None: 
+            s += "Robot is currently performing a mapping task"
+        else: 
+            s += "An error has occured"
+        self.info_sender.publish(s)
+
 
     def get_map_list(self):
         s = "map_list|"
