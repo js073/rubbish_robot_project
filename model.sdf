@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.4">
-  <model name="red_square">
+  <model name="green_square">
     <static>true</static>
     <link name="link">
       <visual name="visual">
@@ -10,8 +10,8 @@
           </box>
         </geometry>
         <material>
-          <ambient>1 0 0 1</ambient>
-          <diffuse>1 0 0 1</diffuse>
+          <ambient>0 1 0 1</ambient>
+          <diffuse>0 1 0 1</diffuse>
           <specular>0 0 0 0</specular>
           <emissive>0 0 0 0</emissive>
           <shader type="pixel"/>
