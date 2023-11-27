@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
 <launch>
+    <remap from="p3dx/cmd_vel" to="cmd_vel"/>
     <arg name="world_file" default="$(find rubbish_robot_project)/worlds/world1.world" />
 
-    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="use_sim_time" value="true"/>
         <arg name="gui" value="true" />
         <arg name="world_name" value="$(arg world_file)" />
-    </include> 
+    </include>  -->
+    <node name="gazebo" pkg="gazebo_ros" type="gazebo" />
 
     <include file="$(find rubbish_robot_project)/p3dx/p3dx_gazebo/launch/p3dx.launch">
     </include>
