@@ -1,60 +1,90 @@
 import rospy 
 from nav_msgs.msg import OccupancyGrid
-from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import LaserScan
-import numpy as np
-import PIL.Image as im
+from geometry_msgs.msg import Pose, PoseWithCovariance, Quaternion
 import math
+import numpy as np
 
+SCAN_TOPIC = "/base_scan"
+MAP_TOPIC = "/map"
+POSE_TOPIC = "/amcl_pose"
+GOAL_SEND_TOPIC = "/goals"
+GOAL_FEEDBACK_TOPIC = "/goal_info"
+
+VISITED_VALUE = 200 # The value that will be used to show the robot has observed a position
 CLEAR_VALUE = 0
-VISITED_VALUE = 50
+CAMERA_FOV = 70 # Field of view of the camera in degrees
 FREE_AREA_SIZE = 5
 
-def map_2d_to_img(map_2d: [[int]]):
-    nm = np.array(map_2d)
-    nm = np.reshape(nm, (4000, 4000))
-    img = im.fromarray(np.uint8(nm), 'L')
-    img.save("/home/jack/test_map%d.jpeg" % 1)
-    print("saved")
-
-def convert_occupancy_to_2d(map: OccupancyGrid):
-    meta_data = map.info
-    data = map.data
-
-    width = meta_data.width
-    height = meta_data.height
-
-    td_array = []
-    for i in range(0, height):
-        sub = []
-        for j in range(0, width):
-            current_index = (i * width) + j
-            sub.append(data[current_index])
-        td_array.append(sub)
-
-    return td_array
-
-class test:
+class task_explore:
     def __init__(self) -> None:
-        self.map_recieve = rospy.Subscriber("/map", OccupancyGrid, self.map_callback, queue_size=100)
-        self.scan_rec = rospy.Subscriber('/base_scan', LaserScan, self.sc, queue_size=100)
-        self.done = False
-        self.internal_map = None
+        self.internal_map: [[int]] = None
+        self.current_pose: Pose = None
+        self.current_scan: LaserScan = None
+        self.map_subscriber = rospy.Subscriber(MAP_TOPIC, OccupancyGrid, self.map_callback, queue_size=100)
+        self.laser_subscriber = rospy.Subscriber(SCAN_TOPIC, LaserScan, self.laser_callback, queue_size=100)
+        self.pose_subsrciber = rospy.Subscriber(POSE_TOPIC, PoseWithCovariance, self.pose_callback, queue_size=100)
+        self.goal_send = rospy.Publisher(GOAL_SEND_TOPIC, type, queue_size=100)
+        self.goal_feedback = rospy.Publisher(GOAL_FEEDBACK_TOPIC, type, self.feedback_callback, queue_size=100)
         self.map_set = False
-        self.temp = None
+        self.goal_set = False
+        self.found_point = False
+        self.end = False
+        self.found_point_vals = [-1, -1]
 
     def map_callback(self, msg: OccupancyGrid):
-        print(msg.info)
-        nm = np.reshape(msg.data, (4000, 4000))
-        v, c = np.unique(nm, return_counts=True)
-        for i in range (0, len(v)):
-            print(v, ":", c)
-        self.internal_map = nm
-        self.map_set = True
-        return
-        a = convert_occupancy_to_2d(msg)
-        map_2d_to_img(a)
+        if not(self.map_set):
+            self.internal_map = np.reshape(msg.data, (4000, 4000))
+            self.map_set = True
 
+    def laser_callback(self, msg: LaserScan):
+        self.current_scan = msg
+        pass
+
+    def pose_callback(self, msg: PoseWithCovariance):
+        self.current_pose = msg.pose
+        scan = self.current_scan
+        map_pose = self.convert_pose_to_map(self.current_pose)
+        current_heading = self.getHeading(msg.pose.orientation)
+        if scan != None:
+            ranges = self.get_used_ranges(scan)
+            for r in ranges:
+                if scan.range_min <= r[0] <= scan.range_max:
+                    self.change_map(r, current_heading, map_pose[0], map_pose[1])
+        if not(self.goal_set):
+            self.determine_goal(self, map_pose, current_heading)
+            self.goal_set = True
+
+    def feedback_callback(self, msg):
+        # implement depending on message type
+        self.goal_set = False
+        if self.end:
+            # kill the node
+            pass
+        else:
+            pose = [self.current_pose.position.x, self.current_pose.position.y]
+            heading = self.getHeading(self.current_pose.orientation)
+            self.determine_goal(pose, heading)
+
+    def convert_pose_to_map(self, pose: Pose): # Converts a pose to the equivalent grid cells, return coordinates (x, y)
+        return [2000 + int(pose.position.x / 0.05), 2000 + int(pose.position.y / 0.05)]
+
+    def get_used_ranges(self, scan: LaserScan):
+        increment = scan.angle_increment
+        fov = (CAMERA_FOV / 180) * math.pi
+        number_increments = int((fov / increment) / 2)
+        scans = scan.ranges
+        mid_point = int(len(scans) / 2)
+        new_scans = scans[(mid_point - number_increments):(mid_point + number_increments)]
+        new_scans = [[s + 0.3, i*increment] for (i, s) in enumerate(new_scans)]
+        return new_scans
+
+
+    def getHeading(self, q: Quaternion):
+        yaw = math.atan2(2 * (q.x * q.y + q.w * q.z),
+                        q.w * q.w + q.x * q.x - q.y * q.y - q.z * q.z)
+        return yaw
+    
     def change_map(self, range, heading, origin_x, origin_y):
         current_heading = heading + range[1]
         gradient = abs(math.tan(current_heading))
@@ -113,7 +143,6 @@ class test:
                     # send the goal
                     print('found, x', ix, ',y', iy)
                     self.goal_set = True
-                    self.temp = [ix, iy]
                     return [ix, iy]
                 else:
                     cx += 1 if quadrent == 1 or quadrent == 4 else -1
@@ -130,21 +159,19 @@ class test:
 
     def determine_goal(self, pos, heading):
         print("start rt")
-        # VARIANCE_ANGLE = math.pi / 4
-        # if self.raytrace_viable_spaces(pos, heading) != None:
-        #     return
-        # if self.raytrace_viable_spaces(pos, heading - VARIANCE_ANGLE) != None:
-        #     return
-        # if self.raytrace_viable_spaces(pos, heading + VARIANCE_ANGLE) != None:
-        #     return
-        self.temp = [0, 0]
+        VARIANCE_ANGLE = math.pi / 4
+        if self.raytrace_viable_spaces(pos, heading) != None:
+            return
+        if self.raytrace_viable_spaces(pos, heading - VARIANCE_ANGLE) != None:
+            return
+        if self.raytrace_viable_spaces(pos, heading + VARIANCE_ANGLE) != None:
+            return
         self.found_point = False
         print("end rt")
         position = self.get_nearest_space(pos[0], pos[1])
         if position != None:
             self.goal_set = True
             print("dopne", position)
-            self.temp = position
             # send new goal 
             pass
         else: 
@@ -192,51 +219,8 @@ class test:
                 return True
         return False
 
-    def sc(self, msg):
-        if self.done == False and self.map_set:
-            self.done = True
-            print("start")
-            ranges = self.get_used_ranges(msg)
-            print(len(ranges))
-            for r in ranges:
-                self.change_map(r, 0, 2000, 2000)
-            print("stop")
-            self.determine_goal([2000, 2000], 0)
-            a = self.temp
-            mini = - math.floor(FREE_AREA_SIZE / 2)
-            maxi = math.ceil(FREE_AREA_SIZE / 2)
-            for i in range(mini, maxi):
-                for j in range(mini, maxi):
-                    self.internal_map[a[1]+i][a[0]+j] = -1
-            print('goals')
-            img = im.fromarray(np.uint8(self.internal_map), 'L')
-            img.save("/home/jack/test_map%d.jpeg" % 50)
-            print("save")
-            
-
-    def euler_to_quaternion(self, yaw, pitch, roll):
-        q = Quaternion()
-        q.x = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-        q.y = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
-        q.z = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
-        q.w = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-
-        return q
-    
-    def get_used_ranges(self, scan: LaserScan):
-        increment = scan.angle_increment
-        fov = (90 / 180) * math.pi
-        number_increments = int((fov / increment) / 2)
-        scans = scan.ranges
-        mid_point = int(len(scans) / 2)
-        new_scans = scans[(mid_point - number_increments):(mid_point + number_increments)]
-        new_scans = [[s + 0.3, (i*increment) - (number_increments*increment)] for (i, s) in enumerate(new_scans)]
-        return new_scans
 
 if __name__ == "__main__":
-    rospy.init_node("test_node")
-    t = test()
+    rospy.init_node("task_explore")
+    task_explore()
     rospy.spin()
-    print(t.euler_to_quaternion(0, 0, 0))
-
-
