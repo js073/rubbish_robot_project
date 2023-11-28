@@ -24,7 +24,7 @@ class ObjectDetector:
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
         # Define the minimum distance for considering an object
-        self.min_distance = 0.6
+        self.min_distance = 0.3
         self.min_area_image = 1000
 
     def scan_callback(self, data):
