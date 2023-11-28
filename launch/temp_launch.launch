@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find rubbish_robot_project)/launch/robot_task.launch">
+        <arg name="map_path" value="$(find rubbish_robot_project)/maps/gazebo1.yaml"/>
+    </include>
+</launch>

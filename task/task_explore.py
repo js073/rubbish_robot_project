@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
 import rospy 
 from nav_msgs.msg import OccupancyGrid
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Pose, PoseWithCovariance, Quaternion
 import math
 import numpy as np
+from . import map_inflation
 
 SCAN_TOPIC = "/base_scan"
 MAP_TOPIC = "/map"
@@ -34,7 +36,8 @@ class task_explore:
 
     def map_callback(self, msg: OccupancyGrid):
         if not(self.map_set):
-            self.internal_map = np.reshape(msg.data, (4000, 4000))
+            self.internal_map = map_inflation.inflate_map(msg, 6)
+            # self.internal_map = np.reshape(msg.data, (4000, 4000))
             self.map_set = True
 
     def laser_callback(self, msg: LaserScan):
