@@ -23,6 +23,7 @@ class slam_mapping:
         self.map_send = rospy.Publisher("/main/map_info", String, queue_size=100)
         self.map_rec = rospy.Subscriber("main/map_cmd", String, self.map_cmd_callback, queue_size=100)
         self.name = rospy.get_param('/auto_map/map_name')
+        self.move_commands = rospy.Publisher("/cmd_vel", Twist, queue_size=100)
         self.is_exploring = True
         self.explore_initialised = False
         self.map_saved = False
@@ -34,15 +35,19 @@ class slam_mapping:
         markers = msg.markers
         # print(markers[0])
         print(len(markers))
+        self.info_pub.publish("Number of markers %d" % len(markers))
         if not(self.explore_initialised) and len(markers) > 0:
             self.explore_initialised = True
             print("here")
         if self.explore_initialised:
             no_ops = True
+            count = 0
             for m in markers:
                 if len(m.points) > 0: # If the current marker is a line
                     if m.color.r != 1: # Check if it is red
                         no_ops = False 
+                        count += 1
+            self.info_pub.publish("%d options avaliable" % count)
             if no_ops and not(self.map_saved): # Terminates the process if all of the frontiers are not accessible
                 self.save_and_kill()
 
@@ -50,8 +55,10 @@ class slam_mapping:
         self.end_explore() # kill explore
         # return to start pos 
         os.system(("rosrun map_server map_saver -f ~/maps/%s" % self.name))
+        self.return_to_start()
         self.info_pub.publish("Saved and finished")
         self.map_saved = True
+        self.map_send.publish("finished")
 
     def start_explore(self):
         self.explore = subprocess.Popen(["roslaunch", "/opt/ros/noetic/share/explore_lite/launch/explore.launch"], stdout=subprocess.DEVNULL)
@@ -59,28 +66,32 @@ class slam_mapping:
     def end_explore(self):
         self.explore.terminate()
 
+    def return_to_start(self):
+        client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
+        client.wait_for_server()
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = "map"
+        goal.target_pose.header.stamp = rospy.Time.now()
+        goal.target_pose.pose.position.x = 0
+        goal.target_pose.pose.position.y = 0
+        goal.target_pose.pose.orientation = self.euler_to_quaternion(0, 0, 0)
+
+        client.send_goal(goal)
+        self.info_pub.publish("sent goal")
+        wait = client.wait_for_result()
+        self.info_pub.publish("got to goal")
+        if client.get_result():
+            move = Twist()
+            self.move_commands.publish(move)
+            self.map_send.publish("finished")
+            self.info_pub.publish("good")
+        else:
+            self.map_send.publish("error")
+            self.info_pub.publish("bad")
+
     def map_cmd_callback(self, msg):
         if msg.data == "shutdown":
-            self.save_and_kill()
-            client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
-            client.wait_for_server()
-            goal = MoveBaseGoal()
-            goal.target_pose.header.frame_id = "map"
-            goal.target_pose.header.stamp = rospy.Time.now()
-            goal.target_pose.pose.position.x = 0
-            goal.target_pose.pose.position.y = 0
-            goal.target_pose.pose.orientation = self.euler_to_quaternion(0, 0, 0)
-
-            client.send_goal(goal)
-            self.info_pub.publish("sent goal")
-            wait = client.wait_for_result()
-            self.info_pub.publish("got to goal")
-            if client.get_result():
-                self.map_send.publish("finished")
-                self.info_pub.publish("good")
-            else:
-                self.map_send.publish("error")
-                self.info_pub.publish("bad")
+            self.return_to_start()
             # RETURN TO THE ORIGIN POS
 
     def euler_to_quaternion(self, yaw, pitch, roll):

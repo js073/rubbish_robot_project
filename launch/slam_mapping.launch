@@ -1,6 +1,5 @@
 <launch>
     <!-- <master auto="start"/>  -->
-    <remap from="/cmd_vel" to="p3dx/cmd_vel"/>
     <arg name="map_name" default="map1"/>
 
    <node name="gmapping" pkg="gmapping" type="slam_gmapping" args="scan:=p3dx/laser/scan _odom_frame:=p3dx/odom _base_frame:=p3dx_tf/base_link _temporalUpdate:=3.0 _map_update_interval:=1.0"/>

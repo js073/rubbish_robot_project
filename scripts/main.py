@@ -21,12 +21,12 @@ class mt:
         split_cmd = command.split("|") # Split the incomming command by | - used to denote end of command and start of any variables
         if len(split_cmd) > 0:
             if split_cmd[0] == "map_start":
-                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1" # The name that the map will be saved under
+                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "gazebo1" # The name that the map will be saved under
                 self.mapping_start()
             elif split_cmd[0] == "map_end":
                 self.mapping_end()
             elif split_cmd[0] == "collection_start":
-                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1" # Default map name
+                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "gazebo1" # Default map name
                 self.collection_start()
             elif split_cmd[0] == "collection_end":
                 self.collection_end()

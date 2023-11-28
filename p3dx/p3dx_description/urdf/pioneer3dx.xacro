@@ -21,6 +21,7 @@ work original in ucs-ros-pkg.
  -->
 <robot name="pioneer3dx" 
 	xmlns:xacro="http://ros.org/wiki/xacro">
+	<xacro:property name="camera_link" value="0.05" />
 	<!-- import all gazebo-customization elements, including gazebo colors -->
 	<xacro:include filename="$(find rubbish_robot_project)/p3dx/p3dx_description/urdf/pioneer3dx.gazebo" />
 	<!-- import the pioneer 3dx's wheels -->
@@ -159,6 +160,39 @@ work original in ucs-ros-pkg.
 		<parent link="center_wheel"/>
 		<child link="center_hubcap"/>
 	</joint>
+
+	<!-- Camera -->
+	<joint name="camera_joint" type="fixed">
+		<axis xyz="0 1 0" />
+		<origin xyz="${camera_link} 0 0.5" rpy="0 0 0"/>
+		<parent link="base_link"/>
+		<child link="camera_link"/>
+	</joint>
+
+	<!-- Camera -->
+	<link name="camera_link">
+		<collision>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+		<geometry>
+		<box size="${camera_link} ${camera_link} ${camera_link}"/>
+		</geometry>
+		</collision>
+
+		<visual>
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+		<geometry>
+		<box size="${camera_link} ${camera_link} ${camera_link}"/>
+		</geometry>
+		<material name="red"/>
+		</visual>
+
+		<inertial>
+		<mass value="1e-5" />
+		<origin xyz="0 0 0" rpy="0 0 0"/>
+		<inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+		</inertial>
+	</link>
+
 	<!-- End of Legacy for diff drive plugin
 	https://github.com/ros-simulation/gazebo_ros_pkgs/pull/707/files
 	"This setting assumes you have a old package, where the right and left wheel are changed to fix a former code issue\n"
