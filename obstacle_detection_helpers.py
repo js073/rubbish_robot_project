@@ -1,4 +1,5 @@
 import numpy as np
+import tf
 
 def filter_noise(lidar_data):
     """
@@ -16,8 +17,8 @@ def polar_to_cartesian(lidar_data):
     :param lidar_data: A numpy array of LIDAR measurements.
     :return: LIDAR data in Cartesian coordinates.
     """
-    angles = lidar_data[:, 0]  # Angles are assumed to be in the first column
-    distances = lidar_data[:, 1]  # Distances in the second column
+    angles = np.linspace(-np.pi/2, np.pi/2, len(lidar_data))
+    distances = lidar_data
     x = distances * np.cos(angles)
     y = distances * np.sin(angles)
     return np.column_stack((x, y))
@@ -33,21 +34,32 @@ def process_lidar_data(raw_lidar_data):
     cartesian_data = polar_to_cartesian(filtered_data)
     return cartesian_data
 
-def convert_to_map_coordinates(robot_pose, point, grid_resolution):
+def convert_to_map_coordinates(robot_pose, cartesian_point, grid_resolution):
     """
-    Convert LIDAR point from polar to Cartesian coordinates and then to map grid coordinates.
-    :param robot_pose: The pose of the robot in the map frame (x, y, theta).
-    :param point: A tuple (angle, distance) representing the LIDAR point in polar coordinates.
+    Convert a point from Cartesian coordinates to map grid coordinates.
+    :param robot_pose: The pose of the robot in the map frame.
+    :param cartesian_point: A tuple (x, y) representing the point in Cartesian coordinates.
     :param grid_resolution: The resolution of the grid map.
     :return: (grid_x, grid_y) coordinates in the map's grid.
     """
-    angle, distance = point
-    x = distance * np.cos(angle)
-    y = distance * np.sin(angle)
+    x, y = cartesian_point
+
+    # Extract position
+    pos_x = robot_pose.position.x
+    pos_y = robot_pose.position.y
+
+    # Convert quaternion to Euler angles (roll, pitch, yaw)
+    quaternion = (
+        robot_pose.orientation.x,
+        robot_pose.orientation.y,
+        robot_pose.orientation.z,
+        robot_pose.orientation.w
+    )
+    roll, pitch, yaw = tf.transformations.euler_from_quaternion(quaternion)
 
     # Transform based on robot's pose
-    map_x = robot_pose.x + x * np.cos(robot_pose.theta) - y * np.sin(robot_pose.theta)
-    map_y = robot_pose.y + x * np.sin(robot_pose.theta) + y * np.cos(robot_pose.theta)
+    map_x = pos_x + x * np.cos(yaw) - y * np.sin(yaw)
+    map_y = pos_y + x * np.sin(yaw) + y * np.cos(yaw)
 
     # Convert to grid coordinates
     grid_x = int(map_x / grid_resolution)
@@ -55,31 +67,49 @@ def convert_to_map_coordinates(robot_pose, point, grid_resolution):
 
     return grid_x, grid_y
 
-def detect_obstacles(robot_pose, lidar_data, map_data, grid_resolution):
+def detect_obstacles(robot_pose, cartesian_lidar_data, grid_resolution, threshold=2.0):
     """
-    Detect obstacles using the current LIDAR data.
-    :param robot_pose: The pose of the robot in the map frame (x, y, theta).
-    :param lidar_data: Current processed LIDAR data.
-    :param map_data: The map data (2D array).
-    :param grid_resolution: The resolution of the grid map.
-    :return: List of grid coordinates representing obstacles.
+    Detect obstacles within a specified threshold distance.
+    
+    :param robot_pose: The pose of the robot in the map frame.
+    :param cartesian_lidar_data: Processed LIDAR data in Cartesian coordinates.
+    :param grid_resolution: Resolution of the grid map.
+    :param threshold: Distance threshold for obstacle detection in meters.
+    :return: A list of grid coordinates (tuples) representing detected obstacles.
     """
     obstacles = []
-    for point in lidar_data:
-        grid_x, grid_y = convert_to_map_coordinates(robot_pose, point, grid_resolution)
-        if 0 <= grid_x < len(map_data) and 0 <= grid_y < len(map_data[0]):
-            if map_data[grid_x][grid_y] == 0:  # Check if the cell is not already marked as an obstacle
-                obstacles.append((grid_x, grid_y))
-    return obstacles
+    for x, y in cartesian_lidar_data:
+        # Calculate the distance from the sensor
+        distance = np.sqrt(x**2 + y**2)
 
-def update_map_with_obstacles(map_data, obstacles):
+        if distance <= threshold:
+            # Convert Cartesian coordinates to map coordinates based on robot's pose
+            grid_x, grid_y = convert_to_map_coordinates(robot_pose, (x, y), grid_resolution)
+            
+            # Add the grid coordinate to the list of obstacles
+            obstacles.append((grid_x, grid_y))
+
+    return list(set(obstacles))
+
+
+def update_map_with_obstacles(obstacles, grid_size, grid_resolution):
     """
-    Update the map/grid with new obstacle information.
-    :param map_data: The current map data (2D array).
+    Create or update a dynamic obstacle map/grid.
+
     :param obstacles: List of grid coordinates representing obstacles.
-    :return: Updated map/grid.
+    :param grid_size: Size of the grid (width, height).
+    :param grid_resolution: Resolution of the grid map.
+    :return: Updated 2D grid map with obstacles marked.
     """
+    # Create an empty grid
+    grid_map = np.zeros(grid_size, dtype=int)
+
+    # Mark obstacles in the grid
     for x, y in obstacles:
-        if 0 <= x < len(map_data) and 0 <= y < len(map_data[0]):
-            map_data[x][y] = 1  # Mark cell as an obstacle
-    return map_data
+        # Check if the obstacle coordinates are within the grid bounds
+        if 0 <= x < grid_size[0] and 0 <= y < grid_size[1]:
+            grid_map[x, y] = 1  # Mark the cell as an obstacle (value 1)
+
+    return grid_map
+
+
