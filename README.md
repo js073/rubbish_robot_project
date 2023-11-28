@@ -12,9 +12,12 @@ See `Documentation.md` for more information on the different nodes in this proje
 2. You may need to install the `explore_lite` to allow for automatic SLAM, this can be done with the command `sudo apt install ros-${ROS_DISTRO}-multirobot-map-merge ros-${ROS_DISTRO}-explore-lite`. 
 
 
-## Automatic SLAM
+### Automatic SLAM
 1. Make sure you run `catkin_make` in your catkin workspace. 
 2. The current implementation of this uses the meeting.world map.
 3. Run `roslaunch rubbish_robot_project slam_mapping.launch`, and mapping will commence.
 4. The robot *should* stop automatically when it cannot find any more frontiers.
 5. When it stops, the map should be saved to `~/maps`
+
+## P3DX
+This is the model that we use for our simulation, the code used here is adapted from https://github.com/mario-serna/pioneer_p3dx_model/tree/master. 

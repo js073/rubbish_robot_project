@@ -24,12 +24,17 @@ class slam_mapping:
         self.map_rec = rospy.Subscriber("main/map_cmd", String, self.map_cmd_callback, queue_size=100)
         self.name = rospy.get_param('/auto_map/map_name')
         self.move_commands = rospy.Publisher("/cmd_vel", Twist, queue_size=100)
+        self.scan = rospy.Subscriber("/p3dx/laser/scan", LaserScan, self.scan_callback, queue_size=100)
         self.is_exploring = True
         self.explore_initialised = False
         self.map_saved = False
         self.returning_to_start = False
+        self.wait_response = True
 
         print("started")
+
+    def scan_callback(self, msg):
+        pass
     
     def frontier_callback(self, msg):
         markers = msg.markers
@@ -78,9 +83,15 @@ class slam_mapping:
 
         client.send_goal(goal)
         self.info_pub.publish("sent goal")
+        self.wait_response = True
         wait = client.wait_for_result()
+        if wait:
+            self.info_pub.publish("is wait")
+        else:
+            self.info_pub.publish("is not wait")
         self.info_pub.publish("got to goal")
-        if client.get_result():
+        if wait:
+            rospy.loginfo("got to the goal")
             move = Twist()
             self.move_commands.publish(move)
             self.map_send.publish("finished")
@@ -91,7 +102,7 @@ class slam_mapping:
 
     def map_cmd_callback(self, msg):
         if msg.data == "shutdown":
-            self.return_to_start()
+            self.save_and_kill()
             # RETURN TO THE ORIGIN POS
 
     def euler_to_quaternion(self, yaw, pitch, roll):
