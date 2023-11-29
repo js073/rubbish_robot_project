@@ -55,6 +55,81 @@ def is_close_to_target(target):
     rospy.loginfo("Distance to target: {:.2f}, Threshold: {:.2f}".format(distance, POSE_THRESHOLD))
     return distance < POSE_THRESHOLD
 
+# Function to check if the robot is close to its target
+def is_close_to_target(target):
+    global robot_position
+    dx = robot_position[0] - target[0]
+    dy = robot_position[1] - target[1]
+    distance = (dx**2 + dy**2)**0.5
+    rospy.loginfo(str(target))
+    rospy.loginfo("Distance to target: {:.2f}, Threshold: {:.2f}".format(distance, POSE_THRESHOLD))
+    return distance < POSE_THRESHOLD
+
+def get_diag(p, i):
+    start = p[i]
+    end = p[i]
+    j = i + 2
+    while j < len(p):
+        current = p[j]
+        d_x = abs(current[0] - start[0])
+        d_y = abs(current[1] - start[1])
+        if d_x == d_y:
+            end = current
+            j += 2
+        else:
+            return start, end, ((j-2)-i)
+    return start, end, ((j-2)-i)
+
+def get_straight(p, i):
+    first = p[i]
+    print("first")
+    prev = p[i]
+    j = i
+    for j in range(i + 1, len(p)):
+        current = p[j]
+        print(current)
+        if first[0] - current[0] == 0 or first[1] - current[1] == 0:
+            prev = current
+        else:
+            return first, prev, ((j-1)-i)
+    return first, prev, ((j)-i)
+
+def smooth_current_path(path):
+    new_path = []
+    i = 0
+    added = False
+    if len(path) > 2:
+        while i < len(path):
+            (s, e, inc) = get_diag(path, i)
+            if inc != 0:
+                if not(added):
+                    new_path.append(s)
+                new_path.append(e)
+                added = True
+                i += inc
+                continue
+            (s, e, inc) = get_straight(path, i)
+            if inc != 0:
+                if not(added):
+                    new_path.append(s)
+                new_path.append(e)
+                added = True
+                i += inc
+                continue
+            if not(added):
+                new_path.append(path[i])
+            i += 1 
+
+            
+        # new_path.append(path[-2])
+        # new_path.append(path[-1])
+        return new_path
+    else:
+        return path
+
+
+
+
 # Publishers
 detailed_movement_pub = rospy.Publisher("/detailed_robot_movement_request", Point, queue_size=1)
 robot_movement_completed_pub = rospy.Publisher("/robot_movement_completed", Bool, queue_size=1)
@@ -126,10 +201,10 @@ def pathfinding_node():
                                 detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
                                 rospy.wait_for_message("/robot_movement_completed", Bool)
 
-                                if is_close_to_target(next_cell):
-                                    current_step += 1
-                                else:
-                                    rospy.logwarn("Robot isn't close enough to estimated pose!")
+                                # if is_close_to_target(next_cell):
+                                current_step += 1
+                                # else:
+                                #     rospy.logwarn("Robot isn't close enough to estimated pose!")
 
         rate.sleep()
 
