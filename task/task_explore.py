@@ -36,6 +36,8 @@ class task_explore:
         self.found_point = False
         self.end = False
         self.new_scan_needed = True
+        self.map_pose = None
+        self.current_heading = None
         self.found_point_vals = [-1, -1]
         rospy.loginfo("initialised")
         self.a = 1
@@ -62,15 +64,14 @@ class task_explore:
         scan = self.current_scan
         map_pose = self.convert_pose_to_map(self.current_pose)
         current_heading = self.getHeading(self.current_pose.orientation)
+        self.map_pose = map_pose
+        self.current_heading = current_heading
         if scan != None:
             rospy.loginfo("ranges")
             ranges = self.get_used_ranges(scan)
             for r in ranges:
                 if scan.range_min <= r[0] <= scan.range_max + 0.5:
                     self.change_map(r, current_heading, map_pose[0], map_pose[1])
-        if not(self.goal_set):
-            rospy.loginfo("goal")
-            self.determine_goal(map_pose, current_heading)
 
     def command_callback(self, msg: String):
         s = msg.data
@@ -81,7 +82,14 @@ class task_explore:
 
     def feedback_callback(self, msg: String):
         rospy.loginfo(msg.data)
-        self.goal_set = False
+        if 'run' in msg.data:
+            self.goal_set = False
+            if not(self.goal_set) and self.map_pose != None and self.current_heading != None:
+                rospy.loginfo("goal")
+                self.determine_goal(self.map_pose, self.current_heading)
+        elif 'img' in msg.data:
+            img = im.fromarray(np.uint8(self.internal_map), 'L')
+            img.save("/home/jack/test_map%d.jpeg" % 50)
         return
         # implement depending on message type
         self.goal_set = False
