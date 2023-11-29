@@ -8,6 +8,7 @@ import math
 import numpy as np
 import map_inflation
 import PIL.Image as im
+import time
 
 SCAN_TOPIC = "/p3dx/laser/scan"
 MAP_TOPIC = "/map"
@@ -31,6 +32,7 @@ class task_explore:
         self.goal_send = rospy.Publisher(GOAL_SEND_TOPIC, PoseStamped, queue_size=100)
         self.goal_feedback = rospy.Subscriber(GOAL_FEEDBACK_TOPIC, String, self.feedback_callback, queue_size=100)
         self.status_subscriber = rospy.Subscriber("/task/commands", String, self.command_callback, queue_size=100)
+        self.info_pub = rospy.Publisher("/info", String, queue_size=100)
         self.map_set = False
         self.goal_set = False
         self.found_point = False
@@ -58,6 +60,7 @@ class task_explore:
     def pose_callback(self, msg: PoseWithCovarianceStamped):
         self.new_scan_needed = True
         rospy.loginfo("pose callback")
+        a = time.time()
         while self.internal_map == None:
             rospy.sleep(1)
         self.current_pose = msg.pose.pose
@@ -72,6 +75,9 @@ class task_explore:
             for r in ranges:
                 if scan.range_min <= r[0] <= scan.range_max + 0.5:
                     self.change_map(r, current_heading, map_pose[0], map_pose[1])
+        b = time.time()
+        s = "Map update:%f" % (b - a)
+        self.info_pub.publish(s)
 
     def command_callback(self, msg: String):
         s = msg.data
@@ -86,7 +92,11 @@ class task_explore:
             self.goal_set = False
             if not(self.goal_set) and self.map_pose != None and self.current_heading != None:
                 rospy.loginfo("goal")
+                a = time.time()
                 self.determine_goal(self.map_pose, self.current_heading)
+                b = time.time()
+                s = "Goal finding:%f" % (b - a)
+                self.info_pub.publish(s)
         elif 'img' in msg.data:
             img = im.fromarray(np.uint8(self.internal_map), 'L')
             img.save("/home/jack/test_map%d.jpeg" % 50)
