@@ -21,18 +21,33 @@ class mt:
         split_cmd = command.split("|") # Split the incomming command by | - used to denote end of command and start of any variables
         if len(split_cmd) > 0:
             if split_cmd[0] == "map_start":
-                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1" # The name that the map will be saved under
+                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "gazebo1" # The name that the map will be saved under
                 self.mapping_start()
             elif split_cmd[0] == "map_end":
                 self.mapping_end()
             elif split_cmd[0] == "collection_start":
-                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "map1" # Default map name
+                self.map_name = split_cmd[1] if len(split_cmd) > 1 else "gazebo1" # Default map name
                 self.collection_start()
             elif split_cmd[0] == "collection_end":
                 self.collection_end()
             elif split_cmd[0] == "map_list":
                 self.get_map_list()
+            elif split_cmd[0] == "robot_state":
+                self.get_robot_state()
+
                 
+    def get_robot_state(self):
+        s = "Robot state: "
+        if self.collection_launch == None and self.mapping_launch == None:
+            s += "Idle"
+        elif self.collection_launch != None:
+            s += "Robot is currently performing a collection task"
+        elif self.mapping_launch != None: 
+            s += "Robot is currently performing a mapping task"
+        else: 
+            s += "An error has occured"
+        self.info_sender.publish(s)
+
 
     def get_map_list(self):
         s = "map_list|"

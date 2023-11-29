@@ -17,3 +17,4 @@ This node is the main node that will handle running the various other different 
 |`collection_start\|<map_name>`|Starts the collection process, where `<map_name>` is replaced by the name of the map that the user wishes to load for the colleciton process.|
 |`collection_end`|Ends the collection process and returns the robot to the starting position|
 |`map_list`|Returns a list of the maps in the format `map_list\|<maps>`, where `maps` is a list of maps seperated by commas|
+|`robot_state`|Returns the current state of the robot in the form `Robot state: <description>`|

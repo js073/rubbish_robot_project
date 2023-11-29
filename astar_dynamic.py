@@ -23,10 +23,9 @@ def heuristic(node, goal):
     return abs(node.position[0] - goal.position[0]) + abs(node.position[1] - goal.position[1])
 
 
-def astar_dynamic(maze, start, end, update_callback):
+def astar_dynamic(maze, start, end):
     start_node = Node(None, start)
     end_node = Node(None, end)
-    print(f"Start Node: {start_node.position}, End Node: {end_node.position}")
 
     open_list = []
     heapq.heappush(open_list, (0, start_node))
@@ -34,40 +33,27 @@ def astar_dynamic(maze, start, end, update_callback):
 
     while open_list:
         current_node = heapq.heappop(open_list)[1]
-        print(f"Current node: {current_node.position}, Open list size: {len(open_list)}")
 
         if current_node == end_node:
-            path = reconstruct_path(current_node)
-            print(f"Path found: {path}")
-            return optimise_path(maze, path)
+            return reconstruct_path(current_node)
 
         closed_list.add(current_node)
         explore_and_update_neighbors(current_node, maze, open_list, closed_list, end_node)
 
-        new_maze = update_callback()
-        if new_maze != maze:
-            maze = new_maze
-            print("Grid updated")
-            explore_and_update_neighbors(current_node, maze, open_list, closed_list, end_node)
+    return None  # Return None if no path is found
 
-        print(f"Open list contains: {[node[1].position for node in open_list]}")
-        if not open_list:
-            print("Open list is empty. No path found.")
-            break
-
-    return None
 
 
 def explore_and_update_neighbors(current_node, maze, open_list, closed_list, end_node):
-    print(f"Exploring neighbors for: {current_node.position}")
+    
     for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-        node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+        node_position = (int(current_node.position[0] + new_position[0]), int(current_node.position[1] + new_position[1]))
 
         if not (0 <= node_position[0] < len(maze) and 0 <= node_position[1] < len(maze[0])):
             continue
         if maze[node_position[0]][node_position[1]] != 0:
             continue
-        print(f"Neighbor {node_position} is traversable")
+        
 
         new_node = Node(current_node, node_position)
         if new_node in closed_list:
@@ -81,7 +67,7 @@ def explore_and_update_neighbors(current_node, maze, open_list, closed_list, end
             continue
 
         heapq.heappush(open_list, (new_node.f, new_node))
-        print(f"Added to open list: {new_node.position}")
+        
 
 
 def reconstruct_path(end_node):
@@ -95,11 +81,12 @@ def reconstruct_path(end_node):
 
 
 def is_path_affected(path, maze):
-    for position in path:
-        x, y = position
+    for step in path:
+        x, y = int(step[0]), int(step[1])
         if maze[x][y] != 0:
             return True
     return False
+
 
 
 def find_affected_segment(path, maze):
@@ -109,46 +96,6 @@ def find_affected_segment(path, maze):
             return i, None
     return None, None
 
-
-def compute_path_from(maze, start_node, end_node, closed_list):
-    open_list = []
-    heapq.heappush(open_list, (start_node.g + heuristic(start_node, end_node), start_node))
-
-    while open_list:
-        current_node = heapq.heappop(open_list)[1]
-
-        if current_node == end_node:
-            return reconstruct_path(current_node)
-
-        closed_list.add(current_node)
-
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
-            if not (0 <= node_position[0] < len(maze) and 0 <= node_position[1] < len(maze[0])):
-                continue
-            if maze[node_position[0]][node_position[1]] != 0:
-                continue
-
-            new_node = Node(current_node, node_position)
-            if new_node in closed_list:
-                continue
-
-            new_node.g = current_node.g + 1
-            new_node.h = heuristic(new_node, end_node)
-            new_node.f = new_node.g + new_node.h
-
-            if any(open_node for open_node in open_list if new_node == open_node[1] and new_node.g >= open_node[1].g):
-                continue
-
-            heapq.heappush(open_list, (new_node.f, new_node))
-
-    return None
-
-
-def merge_paths(new_segment, unaffected_segment):
-    if not new_segment or not unaffected_segment:
-        return new_segment or unaffected_segment
-    return new_segment + unaffected_segment[1:]
 
 
 def line_of_sight(maze, start, end):
@@ -192,8 +139,4 @@ def optimise_path(maze, path):
     return optimised_path
 
 
-def is_diagonal_clear(maze, pos1, pos2):
-    x1, y1 = pos1
-    x2, y2 = pos2
-    return all(
-        maze[x][y] == 0 for x in range(min(x1, x2), max(x1, x2) + 1) for y in range(min(y1, y2), max(y1, y2) + 1))
+

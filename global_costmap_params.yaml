@@ -1,6 +1,6 @@
 global_costmap:
   global_frame: map
-  robot_base_frame: base_link
+  robot_base_frame: p3dx_tf/base_link
   update_frequency: 5.0
   static_map: false
   width: 200.0 

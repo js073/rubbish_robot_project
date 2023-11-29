@@ -13,7 +13,7 @@ class simple_command_sender:
         print(s)
 
     def send_commands(self):
-        user_input = input("Enter command")
+        user_input = input("Enter command (exit to exit): ")
         if user_input == "exit":
             return False
         else:
