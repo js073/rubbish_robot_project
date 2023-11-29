@@ -31,10 +31,21 @@ def robot_position_callback(data):
     robot_position = (data.pose.pose.position.x, data.pose.pose.position.y)
 
 # Callback for map updates
+
 def map_callback(data):
     global grid
-    grid = [data.data[i:i+4000] for i in range(0, len(data.data), 4000)]
-    
+    grid_height = data.info.height
+    grid_width = data.info.width
+
+    # Create a grid of dimensions [grid_width x grid_height]
+    grid = [[0 for _ in range(grid_height)] for _ in range(grid_width)]
+
+    # Fill the grid
+    for i in range(len(data.data)):
+        grid_x = i % grid_width
+        grid_y = i // grid_width
+        grid[grid_x][grid_y] = data.data[i]
+
             
 # Function to check if the robot is close to its target
 def is_close_to_target(target):
@@ -42,6 +53,7 @@ def is_close_to_target(target):
     dx = robot_position[0] - target[0]
     dy = robot_position[1] - target[1]
     distance = (dx**2 + dy**2)**0.5
+    rospy.loginfo(str(target))
     rospy.loginfo("Distance to target: {:.2f}, Threshold: {:.2f}".format(distance, POSE_THRESHOLD))
     return distance < POSE_THRESHOLD
 
