@@ -1,0 +1,17 @@
+# Cleaning Robot Dashboard
+
+This project is a web-based dashboard for monitoring and controlling a cleaning robot.
+
+## Prerequisites
+
+Before running the project, ensure you have the following installed:
+
+- [Node.js](https://nodejs.org/)
+- [npm](https://www.npmjs.com/)
+
+## Getting Started
+
+1. Clone the repository:
+cd my-vue-project
+npm install 
+sudo npm run serve
