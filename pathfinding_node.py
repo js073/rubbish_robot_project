@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import rospy
-from geometry_msgs.msg import PoseWithCovarianceStamped, Point
+from geometry_msgs.msg import PoseWithCovarianceStamped, Point, Pose, PoseArray
 from std_msgs.msg import Bool
 from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped
 from astar_dynamic import astar_dynamic, is_path_affected, find_affected_segment
+import map_inflation_inv
 
 # Global variables to store the grid, robot's position, and path
 grid = None
@@ -36,14 +37,18 @@ def map_callback(data):
     grid_height = data.info.height
     grid_width = data.info.width
 
+    grid = map_inflation_inv.inflate_map(data)
+    return
+
     # Create a grid of dimensions [grid_width x grid_height]
-    grid = [[0 for _ in range(grid_height)] for _ in range(grid_width)]
+    temp = [[0 for _ in range(grid_height)] for _ in range(grid_width)]
 
     # Fill the grid
     for i in range(len(data.data)):
         grid_x = i % grid_width
         grid_y = i // grid_width
-        grid[grid_x][grid_y] = data.data[i]
+        temp[grid_x][grid_y] = data.data[i]
+    grid = temp
 
 # Function to check if the robot is close to its target
 def is_close_to_target(target):
@@ -143,6 +148,8 @@ def pathfinding_node():
     rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, robot_position_callback)
     rospy.Subscriber("/map", OccupancyGrid, map_callback)
 
+    poses_pub = rospy.Publisher("/paths", PoseArray, queue_size=100)
+
     # Loop rate
     rate = rospy.Rate(10)  # 10 Hz
 
@@ -164,6 +171,25 @@ def pathfinding_node():
                 rospy.loginfo(str(new_path))
 
                 if new_path:
+                    new_path = smooth_current_path(new_path) # For smoothing
+                    if False: # For visualising
+                        pa = PoseArray()
+                        poses = []
+                        pa.header.frame_id = 'map'
+                        s = ""
+                        for n in new_path:
+                            x = n[0]
+                            y = n[1]
+                            p = Pose()
+                            if grid[x][y] != 0:
+                                s += "{}, {}, {} |".format(x, y, grid[x][y])
+                            p.position.x = (x - 2000) * 0.05
+                            p.position.y = (y - 2000) * 0.05
+                            p.orientation.w = 1
+                            poses.append(p)
+                        pa.poses = poses
+                        poses_pub.publish(pa)
+                        rospy.loginfo(s)
                     current_path = new_path
                     current_step = 0  # Reset the current step
 

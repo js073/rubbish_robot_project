@@ -29,10 +29,13 @@ def convert_occupancy_to_2d(map: OccupancyGrid):
 # Will take an occupancy grid and inlfate all obstacles by a factor of size
 def inflate_map(map: OccupancyGrid, size=INFLATION_SIZE):
     map_2d = convert_occupancy_to_2d(map)
+    rospy.loginfo("converteed")
     obstacle_coordinates = get_obstacle_coordinates(map_2d)
+    rospy.loginfo("coords")
     new_map = map_2d
     for (x, y) in obstacle_coordinates:
         new_map = inflate_point(new_map, size, x, y)
+    rospy.loginfo("inflated points")
 
     # map_2d_to_img(new_map) # Generate image (testing)
     return new_map
