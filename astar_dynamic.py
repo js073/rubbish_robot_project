@@ -1,4 +1,5 @@
 import heapq
+import rospy
 
 
 class Node:
@@ -24,6 +25,7 @@ def heuristic(node, goal):
 
 
 def astar_dynamic(maze, start, end):
+    rospy.loginfo("Starting A* with start: {} and end: {}".format(start, end))
     start_node = Node(None, start)
     end_node = Node(None, end)
 
@@ -34,24 +36,27 @@ def astar_dynamic(maze, start, end):
     while open_list:
         current_node = heapq.heappop(open_list)[1]
 
+
         if current_node == end_node:
             return reconstruct_path(current_node)
 
         closed_list.add(current_node)
         explore_and_update_neighbors(current_node, maze, open_list, closed_list, end_node)
-
+    rospy.logwarn("No path found from {} to {}".format(start, end))
     return None  # Return None if no path is found
 
 
 
 def explore_and_update_neighbors(current_node, maze, open_list, closed_list, end_node):
-    
+
     for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
         node_position = (int(current_node.position[0] + new_position[0]), int(current_node.position[1] + new_position[1]))
 
         if not (0 <= node_position[0] < len(maze) and 0 <= node_position[1] < len(maze[0])):
+
             continue
         if maze[node_position[0]][node_position[1]] != 0:
+
             continue
         
 
@@ -137,6 +142,5 @@ def optimise_path(maze, path):
         optimised_path.append(path[-1])  # Ensure the last point is always included
 
     return optimised_path
-
 
 
