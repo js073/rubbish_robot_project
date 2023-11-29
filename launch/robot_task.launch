@@ -7,6 +7,6 @@
 
     <!-- add nodes here -->
     <node name="task_explore" pkg="rubbish_robot_project" type="task_explore.py"/>
-    <node name="image_process" pkg="rubbish_robot_project" type="new_image_processing.py"/>
+    <node name="image_process" pkg="rubbish_robot_project" type="new_image_processing_node.py"/>
 
 </launch>

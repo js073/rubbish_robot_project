@@ -31,7 +31,8 @@ class ObjectDetector:
         self.min_distance = 0.3
         self.min_area_image = 1000
         self.detected = None
-        self.can_move = True
+        self.can_move = False
+        self.first = False
 
     def scan_callback(self, data):
         # Process laser scan data to detect objects
@@ -62,24 +63,28 @@ class ObjectDetector:
         self.detected = detection_result
         rospy.loginfo(f"Detected colors: {detection_result}")
 
-        s = String()
-        s.data = "pause" if detection_result['trash'] or detection_result['recycling'] else "resume"
-        self.status_pub.publish(s)
-        self.can_move = detection_result['trash'] or detection_result['recycling']
+        if self.first:
+            s = String()
+            s.data = "pause" if detection_result['trash'] or detection_result['recycling'] else "resume"
+            self.status_pub.publish(s)
+            self.can_move = detection_result['trash'] or detection_result['recycling']
 
-        if detection_result['trash']:
-            trash_coordinates = self.get_coordinates(self.red_mask)
-            rospy.loginfo(f"Trash coordinates: {trash_coordinates}")
-            self.decide_robot_movement(trash_coordinates[0])
-            # Implement robot movement to the trash coordinates
+            if detection_result['trash']:
+                trash_coordinates = self.get_coordinates(self.red_mask)
+                rospy.loginfo(f"Trash coordinates: {trash_coordinates}")
+                self.decide_robot_movement(trash_coordinates[0])
+                # Implement robot movement to the trash coordinates
 
-        if detection_result['recycling']:
-            recycling_coordinates = self.get_coordinates(self.green_mask)
-            rospy.loginfo(f"Recycling coordinates: {recycling_coordinates}")
-            self.decide_robot_movement(recycling_coordinates[0])
-            # Implement robot movement to the recycling coordinates
+            if detection_result['recycling']:
+                recycling_coordinates = self.get_coordinates(self.green_mask)
+                rospy.loginfo(f"Recycling coordinates: {recycling_coordinates}")
+                self.decide_robot_movement(recycling_coordinates[0])
+                # Implement robot movement to the recycling coordinates
+        else: 
+            self.first = True
 
     def decide_robot_movement(self, coords):
+        rospy.logdebug(coords)
         (x, y) = coords
         if 700 < x < 900:
             self.move_robot(0.2, 0)
