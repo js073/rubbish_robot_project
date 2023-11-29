@@ -5,7 +5,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped, Point
 from std_msgs.msg import Bool
 from nav_msgs.msg import Path, OccupancyGrid
 from geometry_msgs.msg import PoseStamped
-from astar_dynamic import astar_dynamic
+from astar_dynamic import astar_dynamic, is_path_affected, find_affected_segment
 
 # Global variables to store the grid, robot's position, and path
 grid = None
@@ -31,7 +31,6 @@ def robot_position_callback(data):
     robot_position = (data.pose.pose.position.x, data.pose.pose.position.y)
 
 # Callback for map updates
-
 def map_callback(data):
     global grid
     grid_height = data.info.height
@@ -46,13 +45,12 @@ def map_callback(data):
         grid_y = i // grid_width
         grid[grid_x][grid_y] = data.data[i]
 
-            
 # Function to check if the robot is close to its target
 def is_close_to_target(target):
     global robot_position
     dx = robot_position[0] - target[0]
     dy = robot_position[1] - target[1]
-    distance = (dx**2 + dy**2)**0.5
+    distance = (dx ** 2 + dy ** 2) ** 0.5
     rospy.loginfo(str(target))
     rospy.loginfo("Distance to target: {:.2f}, Threshold: {:.2f}".format(distance, POSE_THRESHOLD))
     return distance < POSE_THRESHOLD
@@ -99,12 +97,39 @@ def pathfinding_node():
                 rospy.loginfo("Processing next step in the current path")
                 next_cell = current_path[current_step + 1]
 
-                # Move to the next cell
-                detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
-                rospy.wait_for_message("/robot_movement_completed", Bool)
+                if not is_path_affected(current_path[current_step:], grid):
+                    rospy.loginfo("Path is clear. Moving to next cell.")
+                    detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
+                    rospy.wait_for_message("/robot_movement_completed", Bool)
 
-                if is_close_to_target(next_cell):
-                    current_step += 1
+                    if is_close_to_target(next_cell):
+                        current_step += 1
+                    else:
+                        rospy.logwarn("Robot isn't close enough to estimated pose!")
+                else:
+                    rospy.logwarn("Path is obstructed. Recalculating affected segment.")
+                    affected_start, affected_end = find_affected_segment(current_path, grid)
+
+                    if affected_start is not None and affected_start <= current_step:
+                        affected_segment_start = current_path[affected_start]
+                        affected_segment_end = current_path[affected_end]
+
+                        new_path_segment = astar_dynamic(grid, affected_segment_start, affected_segment_end)
+
+                        if new_path_segment:
+                            current_path = current_path[:affected_start] + new_path_segment + current_path[affected_end + 1:]
+                            publish_path(current_path, path_publisher, current_step)
+
+                            # Now check if robot has moved to the next cell before incrementing current_step
+                            if current_step < len(current_path) - 1:
+                                next_cell = current_path[current_step + 1]
+                                detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
+                                rospy.wait_for_message("/robot_movement_completed", Bool)
+
+                                if is_close_to_target(next_cell):
+                                    current_step += 1
+                                else:
+                                    rospy.logwarn("Robot isn't close enough to estimated pose!")
 
         rate.sleep()
 
@@ -116,3 +141,4 @@ if __name__ == '__main__':
         pathfinding_node()
     except rospy.ROSInterruptException:
         pass
+
