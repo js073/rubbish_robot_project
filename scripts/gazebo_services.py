@@ -5,6 +5,7 @@ import math
 # Provides functions to find the nearest rubbish in the gazebo world and remove it
 
 RUBBSIH_MODEL_IDENTIFIERS = "green_square" # TEMP - The model of rubbish
+RECYCLING_MODEL_IDENTIFIERS = "red_square"
 ROBOT_MODEL_NAME = "p3dx" # Model name for the robot, used to get the nearest models to the robot
 
 def get_models(): # Gets all models in the world
@@ -48,7 +49,7 @@ def delete_model(model_name): # Deletes the model with the specified name
 
 def remove_nearest_rubbish():
     world_models = get_models()
-    rubbish_models = [m for m in world_models if RUBBSIH_MODEL_IDENTIFIERS in m]
+    rubbish_models = [m for m in world_models if RUBBSIH_MODEL_IDENTIFIERS in m or RECYCLING_MODEL_IDENTIFIERS in m]
     closest_model = get_closest_model(rubbish_models)
     delete_model(closest_model)
 

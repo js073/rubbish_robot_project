@@ -10,6 +10,7 @@ See `Documentation.md` for more information on the different nodes in this proje
 ### Required Packages
 1. Rosbridge is required for the web interface, please install using this command: `sudo apt-get install ros-noetic-rosbridge-suite`. 
 2. You may need to install the `explore_lite` to allow for automatic SLAM, this can be done with the command `sudo apt install ros-${ROS_DISTRO}-multirobot-map-merge ros-${ROS_DISTRO}-explore-lite`. 
+3. OpenCV is required for image processing, install using `pip install opencv-python`. 
 
 
 ### Automatic SLAM

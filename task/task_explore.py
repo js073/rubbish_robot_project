@@ -30,6 +30,7 @@ class task_explore:
         self.pose_subsrciber = rospy.Subscriber(POSE_TOPIC, PoseWithCovarianceStamped, self.pose_callback, queue_size=100)
         self.goal_send = rospy.Publisher(GOAL_SEND_TOPIC, PoseStamped, queue_size=100)
         self.goal_feedback = rospy.Subscriber(GOAL_FEEDBACK_TOPIC, String, self.feedback_callback, queue_size=100)
+        self.status_subscriber = rospy.Subscriber("/task/commands", String, self.command_callback, queue_size=100)
         self.map_set = False
         self.goal_set = False
         self.found_point = False
@@ -70,6 +71,13 @@ class task_explore:
         if not(self.goal_set):
             rospy.loginfo("goal")
             self.determine_goal(map_pose, current_heading)
+
+    def command_callback(self, msg: String):
+        s = msg.data
+        if "pause" in s:
+            pass
+        elif "remsume" in s:
+            pass
 
     def feedback_callback(self, msg: String):
         rospy.loginfo(msg.data)

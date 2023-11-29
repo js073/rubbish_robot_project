@@ -6,7 +6,7 @@
       <visual name="visual">
         <geometry>
           <box>
-            <size>0.3 0.3 0.3</size>
+            <size>0.3 0.3 1.5</size>
           </box>
         </geometry>
         <material>
@@ -17,6 +17,13 @@
           <shader type="pixel"/>
         </material>
       </visual>
+      <collision name="green_box_collision">
+        <geometry>
+          <box>
+            <size>0.3 0.3 1.5</size>
+          </box>
+        </geometry>
+      </collision>
     </link>
   </model>
 </sdf>
