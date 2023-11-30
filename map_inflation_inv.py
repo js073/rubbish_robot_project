@@ -17,6 +17,7 @@ def convert_occupancy_to_2d(map: OccupancyGrid):
     height = meta_data.height
 
     td_array = [[map.data[i*4000 + j] for i in range(0, width)] for j in range(0, height)]
+    return td_array
     for i in range(0, height):
         sub = []
         for j in range(0, width):
