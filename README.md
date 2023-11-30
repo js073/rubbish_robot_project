@@ -29,9 +29,11 @@ Before running the project, ensure you have the following installed:
 
 #### Running
 1. Clone the repository:
-cd my-vue-project
-npm install 
-sudo npm run serve
+2. `cd my-vue-project`
+3. `npm install `
+4. run `./node_modules/.bin/eslint --init`
+4. `npm run build`
+5. `sudo npm run serve`
 
 
 ### Automatic SLAM
