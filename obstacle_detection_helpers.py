@@ -1,5 +1,6 @@
 import numpy as np
 import tf
+import rospy
 
 def filter_noise(lidar_data):
     """
@@ -33,6 +34,9 @@ def process_lidar_data(raw_lidar_data):
     filtered_data = filter_noise(raw_lidar_data)
     cartesian_data = polar_to_cartesian(filtered_data)
     return cartesian_data
+    
+
+
 
 def convert_to_map_coordinates(robot_pose, cartesian_point, grid_resolution):
     """
@@ -92,23 +96,23 @@ def detect_obstacles(robot_pose, cartesian_lidar_data, grid_resolution, threshol
     return list(set(obstacles))
 
 
-def update_map_with_obstacles(obstacles, grid_size, grid_resolution):
+def update_map_with_obstacles(dynamic_obstacles, static_obstacles, grid_size):
     """
-    Create or update a dynamic obstacle map/grid.
+    Update the map/grid with dynamic and static obstacle information.
 
-    :param obstacles: List of grid coordinates representing obstacles.
+    :param dynamic_obstacles: List of dynamic obstacle coordinates.
+    :param static_obstacles: List of static obstacle coordinates.
     :param grid_size: Size of the grid (width, height).
-    :param grid_resolution: Resolution of the grid map.
-    :return: Updated 2D grid map with obstacles marked.
+    :return: Updated 2D grid map.
     """
     # Create an empty grid
     grid_map = np.zeros(grid_size, dtype=int)
 
-    # Mark obstacles in the grid
-    for x, y in obstacles:
-        # Check if the obstacle coordinates are within the grid bounds
-        if 0 <= x < grid_size[0] and 0 <= y < grid_size[1]:
-            grid_map[x, y] = 1  # Mark the cell as an obstacle (value 1)
+    # Mark static and dynamic obstacles in the grid
+    for obstacle_list in [dynamic_obstacles, static_obstacles]:
+        for x, y in obstacle_list:
+            if 0 <= x < grid_size[0] and 0 <= y < grid_size[1]:
+                grid_map[x, y] = 1  # Mark the cell as an obstacle
 
     return grid_map
 
