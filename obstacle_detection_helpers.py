@@ -71,7 +71,7 @@ def convert_to_map_coordinates(robot_pose, cartesian_point, grid_resolution):
 
     return grid_x, grid_y
 
-def detect_obstacles(robot_pose, cartesian_lidar_data, grid_resolution, threshold=2.0):
+def detect_obstacles(robot_pose, cartesian_lidar_data, grid_resolution, threshold=3.5):
     """
     Detect obstacles within a specified threshold distance.
     
