@@ -25,6 +25,7 @@ Before running the project, ensure you have the following installed:
 
 - [Node.js](https://nodejs.org/)
 - [npm](https://www.npmjs.com/)
+- Install VUE CLI `npm install -g @vue/cli`. 
 
 #### Running
 1. Clone the repository:
