@@ -66,6 +66,69 @@
         <kinematic>0</kinematic>
       </link>
     </model>
+    <model name='moving_box_1'>
+      <pose>0 0 0.5 0 0 0</pose> <!-- Starting position of the box -->
+      <static>false</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>1 1 1</size> <!-- Size of the box -->
+            </box>
+          </geometry>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <box>
+              <size>1 1 1</size> <!-- Size of the box -->
+            </box>
+          </geometry>
+        </visual>
+        <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+          <rosDebugLevel>Debug</rosDebugLevel>
+          <publishWheelTF>true</publishWheelTF>
+          <robotNamespace>/moving_box_1</robotNamespace>
+          <commandTopic>cmd_vel</commandTopic>
+          <odometryTopic>odom</odometryTopic>
+          <odometryFrame>odom</odometryFrame>
+          <robotBaseFrame>base_footprint</robotBaseFrame>
+          <legacyMode>false</legacyMode>
+          <!-- Other differential drive parameters here -->
+        </plugin>
+      </link>
+    </model>
+
+    <model name='moving_box_2'>
+      <pose>0 1 0.5 0 0 0</pose> <!-- Starting position of the box -->
+      <static>false</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <box>
+              <size>1 1 1</size> <!-- Size of the box -->
+            </box>
+          </geometry>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <box>
+              <size>1 1 1</size> <!-- Size of the box -->
+            </box>
+          </geometry>
+        </visual>
+        <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+          <rosDebugLevel>Debug</rosDebugLevel>
+          <publishWheelTF>true</publishWheelTF>
+          <robotNamespace>/moving_box_1</robotNamespace>
+          <commandTopic>cmd_vel</commandTopic>
+          <odometryTopic>odom</odometryTopic>
+          <odometryFrame>odom</odometryFrame>
+          <robotBaseFrame>base_footprint</robotBaseFrame>
+          <legacyMode>false</legacyMode>
+          <!-- Other differential drive parameters here -->
+        </plugin>
+      </link>
+    </model>
     <gravity>0 0 -9.8</gravity>
     <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
     <atmosphere type='adiabatic'/>
