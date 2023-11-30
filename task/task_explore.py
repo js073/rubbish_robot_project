@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy 
-from nav_msgs.msg import OccupancyGrid
+from nav_msgs.msg import OccupancyGrid, Odometry
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Pose, PoseWithCovariance, Quaternion, PoseWithCovarianceStamped, PoseStamped
 from std_msgs.msg import String
@@ -14,7 +14,7 @@ SCAN_TOPIC = "/p3dx/laser/scan"
 MAP_TOPIC = "/map"
 POSE_TOPIC = "/amcl_pose"
 GOAL_SEND_TOPIC = "/goals_new"
-GOAL_FEEDBACK_TOPIC = "/main/commands"
+GOAL_FEEDBACK_TOPIC = "/task/explore_commands"
 
 VISITED_VALUE = 200 # The value that will be used to show the robot has observed a position
 CLEAR_VALUE = 0
@@ -29,10 +29,14 @@ class task_explore:
         self.map_subscriber = rospy.Subscriber(MAP_TOPIC, OccupancyGrid, self.map_callback, queue_size=100)
         self.laser_subscriber = rospy.Subscriber(SCAN_TOPIC, LaserScan, self.laser_callback, queue_size=100)
         self.pose_subsrciber = rospy.Subscriber(POSE_TOPIC, PoseWithCovarianceStamped, self.pose_callback, queue_size=100)
-        self.goal_send = rospy.Publisher(GOAL_SEND_TOPIC, PoseStamped, queue_size=100)
+        self.goal_send = rospy.Publisher(GOAL_SEND_TOPIC, PoseStamped, queue_size=100, latch=True)
         self.goal_feedback = rospy.Subscriber(GOAL_FEEDBACK_TOPIC, String, self.feedback_callback, queue_size=100)
         self.status_subscriber = rospy.Subscriber("/task/commands", String, self.command_callback, queue_size=100)
+        self.status_info_subscriber = rospy.Subscriber("/task/explore_command_info", String, self.info_callback, queue_size=100)
+        self.odom_sub = rospy.Subscriber("/p3dx/odom", Odometry, self.odom_callback, queue_size=100)
         self.info_pub = rospy.Publisher("/info", String, queue_size=100)
+        self.main_pub = rospy.Publisher("/main/command", String, queue_size=100)
+        self.pose_pub = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=100)
         self.map_set = False
         self.goal_set = False
         self.found_point = False
@@ -41,6 +45,10 @@ class task_explore:
         self.map_pose = None
         self.current_heading = None
         self.found_point_vals = [-1, -1]
+        self.will_kill = False
+        self.got_goal = False
+        self.count = 0
+        self.odom_pos = None
         rospy.loginfo("initialised")
         self.a = 1
 
@@ -65,8 +73,29 @@ class task_explore:
             rospy.sleep(1)
         self.current_pose = msg.pose.pose
         scan = self.current_scan
-        map_pose = self.convert_pose_to_map(self.current_pose)
-        current_heading = self.getHeading(self.current_pose.orientation)
+        odom = self.odom_pos
+        map_pose = None
+        current_heading = None
+        if odom != None:
+            ox = odom.pose.pose.position.x
+            oy = odom.pose.pose.position.y
+            ax = msg.pose.pose.position.x
+            ay = msg.pose.pose.position.y
+            dist = math.sqrt((ox-ax)**2 + (oy-ay)**2)
+            if dist > 1:
+                initial = PoseWithCovarianceStamped()
+                initial.pose.pose.position.x = ox
+                initial.pose.pose.position.y = oy
+                initial.pose.pose.orientation = odom.pose.pose.orientation
+                self.pose_pub(initial)
+                map_pose = [int((ox / 0.05) + 2000), int((oy / 0.05) + 2000)]
+                current_heading = self.getHeading(odom.pose.pose.orientation)
+            else: 
+                map_pose = self.convert_pose_to_map(self.current_pose)
+                current_heading = self.getHeading(self.current_pose.orientation)
+        else: 
+            map_pose = self.convert_pose_to_map(self.current_pose)
+            current_heading = self.getHeading(self.current_pose.orientation)
         self.map_pose = map_pose
         self.current_heading = current_heading
         if scan != None:
@@ -79,6 +108,9 @@ class task_explore:
         s = "Map update:%f" % (b - a)
         self.info_pub.publish(s)
 
+    def odom_callback(self, msg: Odometry):
+        self.odom_pos = msg
+
     def command_callback(self, msg: String):
         s = msg.data
         if "pause" in s:
@@ -88,12 +120,19 @@ class task_explore:
 
     def feedback_callback(self, msg: String):
         rospy.loginfo(msg.data)
-        if 'run' in msg.data:
+        if 'new_goal' in msg.data:
+            if self.will_kill:
+                self.main_pub.publish("kill_task_now")
+                return
             self.goal_set = False
+            self.got_goal = False
+            rospy.loginfo("got here")
             if not(self.goal_set) and self.map_pose != None and self.current_heading != None:
                 rospy.loginfo("goal")
                 a = time.time()
+                
                 self.determine_goal(self.map_pose, self.current_heading)
+                rospy.loginfo(rospy.Time.now())
                 b = time.time()
                 s = "Goal finding:%f" % (b - a)
                 self.info_pub.publish(s)
@@ -110,6 +149,9 @@ class task_explore:
             pose = [self.current_pose.position.x, self.current_pose.position.y]
             heading = self.getHeading(self.current_pose.orientation)
             self.determine_goal(pose, heading)
+
+    def info_callback(self, msg: String):
+        self.got_goal = True
 
     def convert_pose_to_map(self, p: Pose): # Converts a pose to the equivalent grid cells, return coordinates (x, y)
         return [2000 + int(p.position.x / 0.05), 2000 + int(p.position.y / 0.05)]
@@ -248,6 +290,7 @@ class task_explore:
             pass
         else: 
             self.send_new_goal(2000, 2000) # Return to the starting position
+            self.will_kill = True
             rospy.loginfo("not found")
             pass
 

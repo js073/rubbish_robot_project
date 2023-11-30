@@ -34,6 +34,9 @@ class mt:
                 self.get_map_list()
             elif split_cmd[0] == "robot_state":
                 self.get_robot_state()
+            elif split_cmd[0] == "kill_task_now":
+                if self.collection_launch is not None:
+                    self.collection_launch.terminate()
 
                 
     def get_robot_state(self):

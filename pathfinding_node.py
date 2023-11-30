@@ -2,8 +2,8 @@
 
 import rospy
 from geometry_msgs.msg import PoseWithCovarianceStamped, Point, Pose, PoseArray
-from std_msgs.msg import Bool
-from nav_msgs.msg import Path, OccupancyGrid
+from std_msgs.msg import Bool, String, Time, Float32
+from nav_msgs.msg import Path, OccupancyGrid, Odometry
 from geometry_msgs.msg import PoseStamped
 from astar_dynamic import astar_dynamic, is_path_affected, find_affected_segment
 import map_inflation_inv
@@ -13,9 +13,11 @@ grid = None
 robot_position = None
 current_path = None  # Variable to store the current path
 current_step = 0  # Variable to track the current step in the path
+running = True
+new_path_needed = True
 
 # Define the goal position (change this to your goal)
-goal = (2005, 2007)
+goal: PoseStamped = None
 
 # Threshold for checking if the robot has reached its target
 POSE_THRESHOLD = 0.025
@@ -27,7 +29,7 @@ def world_to_grid(world_x, world_y, cell_size, grid_width, grid_height):
     return grid_x, grid_y
 
 # Callback for robot position updates from /amcl_pose
-def robot_position_callback(data):
+def robot_position_callback(data: Odometry):
     global robot_position
     robot_position = (data.pose.pose.position.x, data.pose.pose.position.y)
 
@@ -131,13 +133,23 @@ def smooth_current_path(path):
         return new_path
     else:
         return path
-
+    
+def status_callback(msg: String):
+    global running
+    global new_path_needed
+    s = msg.data
+    if "pause" in s:
+        running = False
+    elif "resume" in s:
+        if not(running):
+            new_path_needed = True
+        running = True
 
 
 
 # Publishers
 detailed_movement_pub = rospy.Publisher("/detailed_robot_movement_request", Point, queue_size=1)
-robot_movement_completed_pub = rospy.Publisher("/robot_movement_completed", Bool, queue_size=1)
+robot_movement_completed_pub = rospy.Publisher("/robot_movement_completed", Float32, queue_size=1)
 
 # Main function
 def pathfinding_node():
@@ -145,92 +157,121 @@ def pathfinding_node():
     rospy.loginfo("Pathfinding node started")
 
     # Subscribers
-    rospy.Subscriber("/amcl_pose", PoseWithCovarianceStamped, robot_position_callback)
+    rospy.Subscriber("/p3dx/odom", Odometry, robot_position_callback)
     rospy.Subscriber("/map", OccupancyGrid, map_callback)
+    rospy.Subscriber("/task/commands", String, status_callback, queue_size=100)
 
     poses_pub = rospy.Publisher("/paths", PoseArray, queue_size=100)
+    explore_pub = rospy.Publisher("/task/explore_commands", String, queue_size=100)
+    explore_pub_info = rospy.Publisher("/task/explore_command_info", String, queue_size=100)
 
     # Loop rate
     rate = rospy.Rate(10)  # 10 Hz
 
     cell_size = 0.05  # meters per cell
     grid_width = 4000
-    grid_height = 4000
+    grid_height = 4000 
 
     while not rospy.is_shutdown():
         if grid is not None and robot_position is not None:
             global current_step, current_path
 
-            # Initial path calculation
-            if current_path is None:
-                rospy.loginfo("Calculating new path")
-                start = world_to_grid(robot_position[0], robot_position[1], cell_size, grid_width, grid_height)
-                end = goal
-                rospy.loginfo("Start: {}, End: {}".format(start, end))
-                new_path = astar_dynamic(grid, start, end)
-                rospy.loginfo(str(new_path))
+            if running:
+                # Initial path calculation
+                if current_path is None or new_path_needed == True:
+                    new_path_needed = False
+                    rospy.loginfo("Calculating new path")
+                    start = world_to_grid(robot_position[0], robot_position[1], cell_size, grid_width, grid_height)
+                    # end = goal
 
-                if new_path:
-                    new_path = smooth_current_path(new_path) # For smoothing
-                    if False: # For visualising
-                        pa = PoseArray()
-                        poses = []
-                        pa.header.frame_id = 'map'
-                        s = ""
-                        for n in new_path:
-                            x = n[0]
-                            y = n[1]
-                            p = Pose()
-                            if grid[x][y] != 0:
-                                s += "{}, {}, {} |".format(x, y, grid[x][y])
-                            p.position.x = (x - 2000) * 0.05
-                            p.position.y = (y - 2000) * 0.05
-                            p.orientation.w = 1
-                            poses.append(p)
-                        pa.poses = poses
-                        poses_pub.publish(pa)
-                        rospy.loginfo(s)
-                    current_path = new_path
-                    current_step = 0  # Reset the current step
+                    goal = None
 
-            # Process next step in the path
-            if current_path and current_step < len(current_path) - 1:
-                rospy.loginfo("Processing next step in the current path")
-                next_cell = current_path[current_step + 1]
-
-                if not is_path_affected(current_path[current_step:], grid):
-                    rospy.loginfo("Path is clear. Moving to next cell.")
-                    detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
-                    rospy.wait_for_message("/robot_movement_completed", Bool)
-
-                    if is_close_to_target(next_cell):
-                        current_step += 1
+                    explore_pub.publish("new_goal")
+                    rospy.loginfo(rospy.Time.now())
+                    goal = rospy.wait_for_message("/goals_new", PoseStamped)
+                    rospy.loginfo("got goal")
+                    explore_pub_info.publish("got")
+                    if goal is not None:
+                        gx = goal.pose.position.x
+                        gy = goal.pose.position.y
+                        end = (round((gx / 0.05) + 2000), round((gy / 0.05) + 2000))
                     else:
-                        rospy.logwarn("Robot isn't close enough to estimated pose!")
-                else:
-                    rospy.logwarn("Path is obstructed. Recalculating affected segment.")
-                    affected_start, affected_end = find_affected_segment(current_path, grid)
+                        new_path_needed = True
+                        continue
+                    rospy.loginfo("Start: {}, End: {}".format(start, end))
+                    new_path = astar_dynamic(grid, start, end)
+                    rospy.loginfo(str(new_path))
 
-                    if affected_start is not None and affected_start <= current_step:
-                        affected_segment_start = current_path[affected_start]
-                        affected_segment_end = current_path[affected_end]
+                    if new_path:
+                        new_path = smooth_current_path(new_path) # For smoothing
+                        if False: # For visualising
+                            pa = PoseArray()
+                            poses = []
+                            pa.header.frame_id = 'map'
+                            s = ""
+                            for n in new_path:
+                                x = n[0]
+                                y = n[1]
+                                p = Pose()
+                                if grid[x][y] != 0:
+                                    s += "{}, {}, {} |".format(x, y, grid[x][y])
+                                p.position.x = (x - 2000) * 0.05
+                                p.position.y = (y - 2000) * 0.05
+                                p.orientation.w = 1
+                                poses.append(p)
+                            pa.poses = poses
+                            poses_pub.publish(pa)
+                            rospy.loginfo(s)
+                        current_path = new_path
+                        current_step = 0  # Reset the current step
 
-                        new_path_segment = astar_dynamic(grid, affected_segment_start, affected_segment_end)
+                # Process next step in the path
+                if current_path and current_step < len(current_path) - 1:
+                    rospy.loginfo("Processing next step in the current path")
+                    next_cell = current_path[current_step + 1]
 
-                        if new_path_segment:
-                            current_path = current_path[:affected_start] + new_path_segment + current_path[affected_end + 1:]
-                            publish_path(current_path, path_publisher, current_step)
+                    if not is_path_affected(current_path[current_step:], grid):
+                        rospy.loginfo("Path is clear. Moving to next cell.")
+                        detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
+                        c_time = rospy.get_time()
+                        time = rospy.wait_for_message("/robot_movement_completed", Float32)
+                        while c_time > time.data:
+                            time = rospy.wait_for_message("/robot_movement_completed", Float32)
 
-                            # Now check if robot has moved to the next cell before incrementing current_step
-                            if current_step < len(current_path) - 1:
-                                next_cell = current_path[current_step + 1]
-                                detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
-                                rospy.wait_for_message("/robot_movement_completed", Bool)
+                        # if is_close_to_target(next_cell):
+                        current_step += 1
+                        # else:
+                        #     rospy.logwarn("Robot isn't close enough to estimated pose!")
+                    else:
+                        rospy.logwarn("Path is obstructed. Recalculating affected segment.")
+                        affected_start, affected_end = find_affected_segment(current_path, grid)
 
-                                # if is_close_to_target(next_cell):
-                                current_step += 1
-                                # else:
-                                #     rospy.logwarn("Robot isn't close enough to estimated pose!")
+                        if affected_start is not None and affected_start <= current_step:
+                            affected_segment_start = current_path[affected_start]
+                            affected_segment_end = current_path[affected_end]
+
+                            new_path_segment = astar_dynamic(grid, affected_segment_start, affected_segment_end)
+
+                            if new_path_segment:
+                                current_path = current_path[:affected_start] + new_path_segment + current_path[affected_end + 1:]
+                                publish_path(current_path, path_publisher, current_step)
+
+                                # Now check if robot has moved to the next cell before incrementing current_step
+                                if current_step < len(current_path) - 1:
+                                    next_cell = current_path[current_step + 1]
+                                    detailed_movement_pub.publish(Point(x=next_cell[0], y=next_cell[1], z=0))
+                                    c_time = rospy.get_time()
+                                    time = rospy.wait_for_message("/robot_movement_completed", Float32)
+                                    while c_time > time.data:
+                                        time = rospy.wait_for_message("/robot_movement_completed", Float32)
+                                    # if is_close_to_target(next_cell):
+                                    current_step += 1
+                                    # else:
+                                    #     rospy.logwarn("Robot isn't close enough to estimated pose!")
+                elif current_path and current_step >= len(current_path) - 1:
+                    # robot has got to position
+                    current_path = None
+                    new_path_needed = True
 
         rate.sleep()
 

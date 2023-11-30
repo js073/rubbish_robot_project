@@ -88,10 +88,13 @@ class ObjectDetector:
         (x, y) = coords
         if 700 < x < 900:
             self.move_robot(0.2, 0)
+            rospy.loginfo("move forward")
         elif x < 700:
             self.move_robot(0, 0.5)
+            rospy.loginfo("turn left")
         else: 
             self.move_robot(0, -0.5)
+            rospy.loginfo("turn right")
 
     def move_robot(self, linear_velocity, angular_velocity):
         # Create a Twist message and publish it
