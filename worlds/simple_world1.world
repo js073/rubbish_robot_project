@@ -67,7 +67,7 @@
       </link>
     </model>
     <model name='moving_box_1'>
-      <pose>0 0 0.5 0 0 0</pose> <!-- Starting position of the box -->
+      <pose>-3.65 0.5 0 0 3.1</pose> <!-- Starting position of the box -->
       <static>false</static>
       <link name='link'>
         <collision name='collision'>
@@ -99,7 +99,7 @@
     </model>
 
     <model name='moving_box_2'>
-      <pose>0 1 0.5 0 0 0</pose> <!-- Starting position of the box -->
+      <pose>-0.25 0 0 0 3.1</pose> <!-- Starting position of the box -->
       <static>false</static>
       <link name='link'>
         <collision name='collision'>
