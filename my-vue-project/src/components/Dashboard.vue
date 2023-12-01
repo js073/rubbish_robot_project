@@ -2,26 +2,36 @@
 <template>
   <div class="robot-dashboard">
     <h2>Robot Dashboard</h2>
-    <div>Status: {{ robotStatus }}</div>
+    <div>Status: <div id="robotStatus">Idle</div></div>
     <div>Location: {{ robotLocation.x }}, {{ robotLocation.y }}</div>
     <div>Path: {{ robotPath }}</div>
     <div>Battery Level: {{ batteryLevel }}%</div>
     <div>Sensor Status: {{ sensorStatus }}</div>
 
     <!-- New Section: Camera View -->
-    <div class="camera-view">
-      <h3>Camera View</h3>
+    <!-- <div class="camera-view"> -->
+      <!-- <h3>Camera View</h3> -->
       <!-- Add your camera view implementation here -->
       <!-- For example, you can display an image or video stream -->
       <!-- <img :src="cameraImageUrl" alt="Camera View" /> -->
-    </div>
+    <!-- </div> -->
 
+    <h3>Robot Controls</h3>
     <!-- Buttons for controlling the robot -->
     <!-- <button @click="startRobotMapping" :disabled="robotStatus !== 'Idle'">Start Mapping</button> -->
     <button @click="startRobotMapping">Start Mapping</button>
     <button @click="stopRobotMapping">Stop Mapping</button>
     <button @click="startRobotTask">Start Task</button>
     <button @click="stopRobotTask">Stop Task</button>
+    
+    <h4>Map to Use</h4>
+    <form>
+      <input type="text" name="mapInput" id="mapInput">
+    </form>
+
+    <h3>Avaliable Maps</h3>
+    <div>Maps: <div id="mapListDiv">None recieved</div></div>
+    <button @click="getMaps">Refresh</button>
   </div>
 </template>
 
@@ -44,10 +54,30 @@ var robotInfo = new ROSLIB.Topic({
   messageType: 'std_msgs/String',
 });
 
+const mapCommand = new ROSLIB.Message({
+  data: "map_list",
+});
+
+window.onload = function () {
+  robotControl.publish(mapCommand);
+}
+
 robotInfo.subscribe(function(message) {
   const str = message.data;
+  const splitStr = str.split("|");
+  if (splitStr[0] === "map_list") {
+    // change the map list varoabl;e
+    console.log("maplist");
+    document.getElementById("mapListDiv").innerText = splitStr[1];
+  } else {
+    document.getElementById("robotStatus").innerText = str;
+  }
   // change the status
 });
+
+// function getTextBox() {
+//   return document.getElementById('mapInput').value;
+// }
 
 export default {
   data() {
@@ -58,19 +88,37 @@ export default {
       batteryLevel: 75, // Example battery level
       sensorStatus: 'Normal',
       cameraImageUrl: 'path_to_camera_image.jpg', // Example camera image URL
+      mapList: "None",
     };
   },
   methods: {
     startRobotMapping() {
       // Call your ROS service or emit a message to start the robot
-      this.publishToROS("map_start|test1");
+      const map = document.getElementById('mapInput').value;
+      console.log(map);
+      if (map === "") {
+        this.publishToROS("map_start|test1");
+      } else {
+        const res = "map_start|".concat(map);
+        this.publishToROS(res);
+      }
+      
     },
     stopRobotMapping() {
       // Call your ROS service or emit a message to stop the robot
       this.publishToROS("map_end");
     },
+    getMaps() {
+      this.publishToROS("map_list");
+    },
     startRobotTask() {
-      this.publishToROS("collection_start");
+      const map = document.getElementById('mapInput').value;
+      if (map === "") {
+        this.publishToROS("collection_start|test1");
+      } else {
+        const res = "collection_start|".concat(map);
+        this.publishToROS(res);
+      }
     },
     stopRobotTask() {
       this.publishToROS("collection_end");
@@ -89,6 +137,9 @@ export default {
     },
   },
 };
+
+
+
 </script>
 
 <style scoped>

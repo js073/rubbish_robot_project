@@ -12,6 +12,7 @@ class mt:
         self.map_name = "map1"
         self.mapping_nodes = ["/slam_mapping", "/move_base", "/auto_map"]
         self.mapping_launch = None
+        self.collection_launch = None
 
     def command_callback(self, msg):
         nodes = rosnode.get_node_names()
@@ -100,7 +101,7 @@ class mt:
             self.info_sender.publish(s)
 
     def collection_end(self):
-        if self.mapping_launch == None: 
+        if self.collection_launch == None: 
             s = "Nothing to end"
             self.info_sender.publish(s)
         else:
