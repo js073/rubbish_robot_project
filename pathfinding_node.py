@@ -158,7 +158,7 @@ def pathfinding_node():
 
     # Subscribers
     rospy.Subscriber("/p3dx/odom", Odometry, robot_position_callback)
-    rospy.Subscriber("/map", OccupancyGrid, map_callback)
+    rospy.Subscriber("grid_update", OccupancyGrid, map_callback)
     rospy.Subscriber("/task/commands", String, status_callback, queue_size=100)
 
     poses_pub = rospy.Publisher("/paths", PoseArray, queue_size=100)
