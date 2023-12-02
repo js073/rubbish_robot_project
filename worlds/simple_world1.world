@@ -66,79 +66,42 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <model name='moving_box_1'>
-      <pose> 0 -4 0 0 4.7</pose> <!-- Starting position of the box -->
-      <static>false</static>
-      <link name='link'>
-        <collision name='collision'>
-          <geometry>
-            <box>
-              <size>0.5 0.5 0.5</size> <!-- Size of the box -->
-            </box>
-          </geometry>
-        </collision>
-        <visual name='visual'>
-          <geometry>
-            <box>
-              <size>0.5 0.5 0.5</size> <!-- Size of the box -->
-            </box>
-          </geometry>
-          <material>
-            <ambient>1 0 0 1</ambient> <!-- Red color -->
-            <diffuse>1 0 0 1</diffuse> <!-- Red color -->
-            <specular>0.1 0.1 0.1 1</specular> <!-- Slight shine -->
-          </material>
-        </visual>
-        <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
-          <rosDebugLevel>Debug</rosDebugLevel>
-          <publishWheelTF>true</publishWheelTF>
-          <robotNamespace>/moving_box_1</robotNamespace>
-          <commandTopic>cmd_vel</commandTopic>
-          <odometryTopic>odom</odometryTopic>
-          <odometryFrame>odom</odometryFrame>
-          <robotBaseFrame>base_footprint</robotBaseFrame>
-          <legacyMode>false</legacyMode>
-          <!-- Other differential drive parameters here -->
+    <model name='dynamic_sphere'>
+        <pose>-2.5 -3.5 0 0 3.14</pose> <!-- Starting position of the sphere -->
+        <static>false</static>
+        <link name='link'>
+            <collision name='collision'>
+                <geometry>
+                    <sphere>
+                        <radius>0.2</radius> <!-- Radius of the sphere (half of diameter 0.2) -->
+                    </sphere>
+                </geometry>
+            </collision>
+            <visual name='visual'>
+                <geometry>
+                    <sphere>
+                        <radius>0.2</radius> <!-- Radius of the sphere (half of diameter 0.2) -->
+                    </sphere>
+                </geometry>
+                <material>
+                    <ambient>1 1 0 1</ambient> <!-- Yellow color -->
+                    <diffuse>1 1 0 1</diffuse> <!-- Yellow color -->
+                    <specular>0.1 0.1 0.1 1</specular> <!-- Slight shine -->
+                </material>
+            </visual>
+        </link>
+        <plugin name="planar_move_plugin" filename="libgazebo_ros_planar_move.so">
+            <robotNamespace>/dynamic_sphere</robotNamespace>
+            <commandTopic>cmd_vel</commandTopic>
+            <odometryTopic>odom</odometryTopic>
+            <odometryFrame>odom</odometryFrame>
+            <robotBaseFrame>base_footprint</robotBaseFrame>
         </plugin>
-      </link>
     </model>
 
-    <model name='moving_box_2'>
-      <pose>3 -4 0 0 3.1</pose> <!-- Starting position of the box -->
-      <static>false</static>
-      <link name='link'>
-        <collision name='collision'>
-          <geometry>
-            <box>
-              <size> 0.5 0.5 0.5 </size> <!-- Size of the box -->
-            </box>
-          </geometry>
-        </collision>
-        <visual name='visual'>
-          <geometry>
-            <box>
-              <size> 0.5 0.5 0.5 </size> <!-- Size of the box -->
-            </box>
-          </geometry>
-          <material>
-            <ambient>1 0 0 1</ambient> <!-- Red color -->
-            <diffuse>1 0 0 1</diffuse> <!-- Red color -->
-            <specular>0.1 0.1 0.1 1</specular> <!-- Slight shine -->
-          </material>
-        </visual>
-        <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
-          <rosDebugLevel>Debug</rosDebugLevel>
-          <publishWheelTF>true</publishWheelTF>
-          <robotNamespace>/moving_box_2</robotNamespace>
-          <commandTopic>cmd_vel</commandTopic>
-          <odometryTopic>odom</odometryTopic>
-          <odometryFrame>odom</odometryFrame>
-          <robotBaseFrame>base_footprint</robotBaseFrame>
-          <legacyMode>false</legacyMode>
-          <!-- Other differential drive parameters here -->
-        </plugin>
-      </link>
-    </model>
+
+
+
     <gravity>0 0 -9.8</gravity>
     <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
     <atmosphere type='adiabatic'/>
