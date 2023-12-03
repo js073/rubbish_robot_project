@@ -9,30 +9,37 @@ def filter_noise(lidar_data):
     :return: Filtered LIDAR data.
     """
     # Replace np.median with a different filter if needed
+    rospy.loginfo(np.shape(lidar_data))
+    rospy.loginfo(lidar_data[0])
     filtered_data = np.median(lidar_data, axis=1)
+    rospy.loginfo(np.shape(filtered_data))
+    rospy.loginfo(filtered_data[0])
+
     return filtered_data
 
-def polar_to_cartesian(lidar_data):
+def polar_to_cartesian(lidar_data, min, max):
     """
     Convert LIDAR data from polar to Cartesian coordinates.
     :param lidar_data: A numpy array of LIDAR measurements.
     :return: LIDAR data in Cartesian coordinates.
     """
-    angles = np.linspace(-np.pi/2, np.pi/2, len(lidar_data))
+    angles = np.linspace(min, max, len(lidar_data))
     distances = lidar_data
+    # distances = [1 if ((len(lidar_data) / 4) < i <( 3 * (len(lidar_data) / 4))) else 0.5 if (len(lidar_data) / 4) < i else 3 for (i, v) in enumerate(lidar_data)]
     x = distances * np.cos(angles)
     y = distances * np.sin(angles)
     return np.column_stack((x, y))
 
 
-def process_lidar_data(raw_lidar_data):
+def process_lidar_data(raw_lidar_data, min, max):
     """
     Preprocess raw LIDAR data.
     :param raw_lidar_data: A numpy array of raw LIDAR measurements.
     :return: Processed LIDAR data in Cartesian coordinates.
     """
-    filtered_data = filter_noise(raw_lidar_data)
-    cartesian_data = polar_to_cartesian(filtered_data)
+    # filtered_data = filter_noise(raw_lidar_data)
+    nd = np.array([r[1] for r in raw_lidar_data])
+    cartesian_data = polar_to_cartesian(nd, min, max)
     return cartesian_data
     
 
@@ -66,8 +73,8 @@ def convert_to_map_coordinates(robot_pose, cartesian_point, grid_resolution):
     map_y = pos_y + x * np.sin(yaw) + y * np.cos(yaw)
 
     # Convert to grid coordinates
-    grid_x = int(map_x / grid_resolution)
-    grid_y = int(map_y / grid_resolution)
+    grid_x = int(map_x / grid_resolution) + 2000
+    grid_y = int(map_y / grid_resolution) + 2000
 
     return grid_x, grid_y
 
@@ -112,7 +119,11 @@ def update_map_with_obstacles(dynamic_obstacles, static_obstacles, grid_size):
     for obstacle_list in [dynamic_obstacles, static_obstacles]:
         for x, y in obstacle_list:
             if 0 <= x < grid_size[0] and 0 <= y < grid_size[1]:
-                grid_map[x, y] = 1  # Mark the cell as an obstacle
+                xs = [x + i for i in range(-2, 3) if 0 <= x + i < 4000]
+                ys = [y + i for i in range(-2, 3) if 0 <= y + i < 4000]
+                for ax in xs:
+                    for ay in ys:
+                        grid_map[ay, ax] = 100  # Mark the cell as an obstacle
 
     return grid_map
 

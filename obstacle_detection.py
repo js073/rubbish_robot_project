@@ -3,7 +3,7 @@
 import rospy
 import numpy as np
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose
 from nav_msgs.msg import OccupancyGrid
 from obstacle_detection_helpers import detect_obstacles, update_map_with_obstacles, process_lidar_data
 
@@ -28,6 +28,7 @@ class ObstacleDetectionNode:
             grid_x = i % width
             grid_y = i // width
             if map_data[i] == 100:  # Occupied cell
+                # static_obstacles.append((grid_x, grid_y))
                 static_obstacles.append((grid_x, grid_y))
         rospy.loginfo(f"Number of static obstacles detected: {len(static_obstacles)}")
         return list(set(static_obstacles))
@@ -45,7 +46,7 @@ class ObstacleDetectionNode:
         angles = np.linspace(data.angle_min, data.angle_max, len(data.ranges))
         distances = np.array(data.ranges)
         lidar_data = np.column_stack((angles, distances))
-        processed_data = process_lidar_data(lidar_data)
+        processed_data = process_lidar_data(lidar_data, data.angle_min, data.angle_max)
 
         obstacles = detect_obstacles(self.robot_pose, processed_data, grid_resolution=grid_resolution)
         rospy.loginfo("Detected obstacles: %s", str(obstacles[:20]))
@@ -57,6 +58,11 @@ class ObstacleDetectionNode:
 
     def publish_grid(self, grid_map):
         grid_msg = OccupancyGrid()
+        origin = Pose()
+        origin.position.x = -100
+        origin.position.y = -100
+        origin.orientation.w = 0
+        grid_msg.info.origin = origin
         grid_msg.header.stamp = rospy.Time.now()
         grid_msg.header.frame_id = "map"
         grid_msg.info.resolution = grid_resolution

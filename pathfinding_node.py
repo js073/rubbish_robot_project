@@ -39,8 +39,8 @@ def map_callback(data):
     grid_height = data.info.height
     grid_width = data.info.width
 
-    grid = map_inflation_inv.inflate_map(data)
-    return
+    # grid = map_inflation_inv.inflate_map(data)
+    # return
 
     # Create a grid of dimensions [grid_width x grid_height]
     temp = [[0 for _ in range(grid_height)] for _ in range(grid_width)]

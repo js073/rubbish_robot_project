@@ -109,10 +109,10 @@ class mt:
             s = "The connection has been terminated"
 
     def map_cmd_callback(self, msg):
-        s = "recieved message %s" % msg.data
-        s += "non" if self.mapping_launch == None else "not"
-        self.info_sender.publish(s)
-        if msg.data == "finished" and self.mapping_launch != None:
+        # s = "recieved message %s" % msg.data
+        # s += "non" if self.mapping_launch == None else "not"
+        # self.info_sender.publish(s)
+        if msg.data == "finished":
             self.mapping_launch.terminate()
             self.mapping_launch = None
             self.info_sender.publish("Robot has returned to starting position and is ready for next actions")
