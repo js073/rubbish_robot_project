@@ -6,6 +6,8 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PoseWithCovarianceStamped, Pose
 from nav_msgs.msg import OccupancyGrid
 from obstacle_detection_helpers import detect_obstacles, update_map_with_obstacles, process_lidar_data
+import map_inflation
+import random
 
 
 class ObstacleDetectionNode:
@@ -15,46 +17,65 @@ class ObstacleDetectionNode:
         self.pose_sub = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)
         self.grid_pub = rospy.Publisher('/grid_update', OccupancyGrid, queue_size=10)
         self.robot_pose = None
+        self.prev = None
         self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         self.static_obstacles = []
+        self.laser_scan = None
+        self.map = None
+        self.require_update = True
+        self.prev_time = 0
 
     def map_callback(self, map_msg):
         rospy.loginfo("Map callback triggered")
-        self.static_obstacles = self.process_map_data(map_msg.data, map_msg.info.width, map_msg.info.height)
+        self.map = self.process_map_data(map_msg, map_msg.info.width, map_msg.info.height)
+        rospy.loginfo("Processed map")
 
     def process_map_data(self, map_data, width, height):
-        static_obstacles = []
-        for i in range(len(map_data)):
-            grid_x = i % width
-            grid_y = i // width
-            if map_data[i] == 100:  # Occupied cell
-                # static_obstacles.append((grid_x, grid_y))
-                static_obstacles.append((grid_x, grid_y))
-        rospy.loginfo(f"Number of static obstacles detected: {len(static_obstacles)}")
-        return list(set(static_obstacles))
+        return np.array(map_inflation.inflate_map(map_data))
 
-    def pose_callback(self, data):
-        rospy.loginfo("pose callback triggered")
+    def pose_callback(self, data: PoseWithCovarianceStamped):
+        # rospy.loginfo("pose callback triggered")
         self.robot_pose = data.pose.pose
+        dt = data.header.stamp
+        ct = rospy.get_rostime()
+        if dt.secs == ct.secs and (abs(ct.nsecs - dt.nsecs) / 1000000) <= 100:
+            self.require_update = True
+
+        # if self.map is not None:
+        #     laser_scan = rospy.wait_for_message("/p3dx/laser/scan", LaserScan)
+        #     self.lidar_callback(laser_scan)
+
+
         
-    def lidar_callback(self, data):
-        rospy.loginfo("lidar callback triggered")
-        if self.robot_pose is None or not self.static_obstacles:
+    def lidar_callback(self, data: LaserScan):
+        # rospy.loginfo("lidar callback triggered")
+        self.laser_scan = data
+        cp = self.robot_pose
+        if self.robot_pose is None or self.map is None:
             rospy.logwarn("Skipping LIDAR processing: Missing pose or static map data")
             return
 
-        angles = np.linspace(data.angle_min, data.angle_max, len(data.ranges))
-        distances = np.array(data.ranges)
-        lidar_data = np.column_stack((angles, distances))
-        processed_data = process_lidar_data(lidar_data, data.angle_min, data.angle_max)
+        dt = data.header.stamp
+        ct = rospy.get_rostime()
+        if dt.secs == ct.secs and (abs(ct.nsecs - dt.nsecs) / 1000000) <= 100 and self.require_update:
+            # rospy.loginfo(abs(self.prev_time - ct) / 1000000)
+            self.require_update = False
+            rospy.loginfo("updating obstacles")
+            # angles = np.linspace(data.angle_min, data.angle_max, len(data.ranges))
+            distances = np.array(data.ranges)
+            # lidar_data = np.column_stack((angles, distances))
 
-        obstacles = detect_obstacles(self.robot_pose, processed_data, grid_resolution=grid_resolution)
-        rospy.loginfo("Detected obstacles: %s", str(obstacles[:20]))
+            
+            processed_data = process_lidar_data(distances, data.angle_min, data.angle_max)
+            t = np.array(data.ranges)
+            obstacles = detect_obstacles(cp, processed_data, grid_resolution=grid_resolution)
+            # rospy.loginfo("Detected obstacles: %s", str(obstacles[:20]))
 
-        rospy.loginfo("First 20 static obstacles: %s", str(self.static_obstacles[:20]))
-
-        grid_map = update_map_with_obstacles(obstacles, self.static_obstacles, grid_size=(4000, 4000))
-        self.publish_grid(grid_map)
+            # rospy.loginfo("First 20 static obstacles: %s", str(self.static_obstacles[:20]))
+            current_map = np.array(self.map)
+            grid_map = update_map_with_obstacles(obstacles, current_map, grid_size=(4000, 4000))
+            self.publish_grid(grid_map)
+            rospy.loginfo("finished update")
 
     def publish_grid(self, grid_map):
         grid_msg = OccupancyGrid()
@@ -76,3 +97,7 @@ if __name__ == '__main__':
     grid_resolution = 0.05
     node = ObstacleDetectionNode()
     rospy.spin()
+    # while not rospy.is_shutdown():
+    #     rospy.loginfo("looping")
+    #     pose = rospy.wait_for_message("/amcl_pose", PoseWithCovarianceStamped)
+    #     node.pose_callback(pose)

@@ -26,8 +26,8 @@ def polar_to_cartesian(lidar_data, min, max):
     angles = np.linspace(min, max, len(lidar_data))
     distances = lidar_data
     # distances = [1 if ((len(lidar_data) / 4) < i <( 3 * (len(lidar_data) / 4))) else 0.5 if (len(lidar_data) / 4) < i else 3 for (i, v) in enumerate(lidar_data)]
-    x = distances * np.cos(angles)
-    y = distances * np.sin(angles)
+    x = np.multiply(distances, np.cos(angles))
+    y = np.multiply(distances, np.sin(angles))
     return np.column_stack((x, y))
 
 
@@ -38,8 +38,8 @@ def process_lidar_data(raw_lidar_data, min, max):
     :return: Processed LIDAR data in Cartesian coordinates.
     """
     # filtered_data = filter_noise(raw_lidar_data)
-    nd = np.array([r[1] for r in raw_lidar_data])
-    cartesian_data = polar_to_cartesian(nd, min, max)
+    # nd = np.array([r[1] for r in raw_lidar_data])
+    cartesian_data = polar_to_cartesian(raw_lidar_data, min, max)
     return cartesian_data
     
 
@@ -103,7 +103,7 @@ def detect_obstacles(robot_pose, cartesian_lidar_data, grid_resolution, threshol
     return list(set(obstacles))
 
 
-def update_map_with_obstacles(dynamic_obstacles, static_obstacles, grid_size):
+def update_map_with_obstacles(dynamic_obstacles, map, grid_size):
     """
     Update the map/grid with dynamic and static obstacle information.
 
@@ -113,10 +113,10 @@ def update_map_with_obstacles(dynamic_obstacles, static_obstacles, grid_size):
     :return: Updated 2D grid map.
     """
     # Create an empty grid
-    grid_map = np.zeros(grid_size, dtype=int)
+    grid_map = map
 
     # Mark static and dynamic obstacles in the grid
-    for obstacle_list in [dynamic_obstacles, static_obstacles]:
+    for obstacle_list in [dynamic_obstacles]:
         for x, y in obstacle_list:
             if 0 <= x < grid_size[0] and 0 <= y < grid_size[1]:
                 xs = [x + i for i in range(-2, 3) if 0 <= x + i < 4000]
