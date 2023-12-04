@@ -95,23 +95,26 @@ def is_path_affected(path, maze):
 
 
 def find_affected_segment(path, maze):
+    # Initialize variables to store the start and end of the affected segment
     affected_segment_start = None
     affected_segment_end = None
-    
-    for i, position in enumerate(path):
+
+    # Find the first affected point in the path
+    for position in path:
         x, y = position
         if maze[x][y] != 0:
-            if affected_segment_start is None:
-                # Start of a new affected segment
-                affected_segment_start = position
-            # Update the end to the current position as we don't know where the segment ends yet
+            affected_segment_start = position
+            break
+
+    # Find the last affected point in the path by reversing the path
+    for position in reversed(path):
+        x, y = position
+        if maze[x][y] != 0:
             affected_segment_end = position
-        else:
-            if affected_segment_start is not None:
-                # Found the end of the affected segment
-                break
-    
+            break
+
     return affected_segment_start, affected_segment_end
+
 
 
 
