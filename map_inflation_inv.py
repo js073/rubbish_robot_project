@@ -6,7 +6,7 @@ import PIL.Image as im
 import time
 
 OBSTACLE_VALUE = 100 # Value that obstacles on the grid map are given
-INFLATION_SIZE = 5 # Needs to be HALF the size of the robot
+INFLATION_SIZE = 8 # Needs to be HALF the size of the robot
 
 # Takes an OccupancyGrid and converts it into a 2D array
 def convert_occupancy_to_2d(map: OccupancyGrid):

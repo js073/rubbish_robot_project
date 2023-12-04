@@ -1,6 +1,8 @@
 import numpy as np
 import tf
 import rospy
+import warnings
+warnings.filterwarnings("error")
 
 def filter_noise(lidar_data):
     """
@@ -23,12 +25,21 @@ def polar_to_cartesian(lidar_data, min, max):
     :param lidar_data: A numpy array of LIDAR measurements.
     :return: LIDAR data in Cartesian coordinates.
     """
-    angles = np.linspace(min, max, len(lidar_data))
-    distances = lidar_data
-    # distances = [1 if ((len(lidar_data) / 4) < i <( 3 * (len(lidar_data) / 4))) else 0.5 if (len(lidar_data) / 4) < i else 3 for (i, v) in enumerate(lidar_data)]
-    x = np.multiply(distances, np.cos(angles))
-    y = np.multiply(distances, np.sin(angles))
-    return np.column_stack((x, y))
+    try:
+        angles = np.linspace(min, max, len(lidar_data))
+        distances = lidar_data
+        # distances = [1 if ((len(lidar_data) / 4) < i <( 3 * (len(lidar_data) / 4))) else 0.5 if (len(lidar_data) / 4) < i else 3 for (i, v) in enumerate(lidar_data)]
+        x = np.multiply(distances, np.cos(angles))
+        y = np.multiply(distances, np.sin(angles))
+        ret = np.column_stack((x, y))
+        a = []
+        for (rx, ry) in ret: 
+            if rx != 0 and ry != 0:
+                a.append((rx,ry))
+        return np.array(a)
+    except RuntimeWarning:
+        return np.array([])
+        
 
 
 def process_lidar_data(raw_lidar_data, min, max):
@@ -113,7 +124,7 @@ def update_map_with_obstacles(dynamic_obstacles, map, grid_size):
     :return: Updated 2D grid map.
     """
     # Create an empty grid
-    grid_map = map
+    obstacles = []
 
     # Mark static and dynamic obstacles in the grid
     for obstacle_list in [dynamic_obstacles]:
@@ -123,8 +134,8 @@ def update_map_with_obstacles(dynamic_obstacles, map, grid_size):
                 ys = [y + i for i in range(-2, 3) if 0 <= y + i < 4000]
                 for ax in xs:
                     for ay in ys:
-                        grid_map[ay, ax] = 100  # Mark the cell as an obstacle
+                        obstacles.append((ax, ay)) # Mark the cell as an obstacle
 
-    return grid_map
+    return np.array(obstacles)
 
 

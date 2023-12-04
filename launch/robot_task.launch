@@ -6,10 +6,10 @@
     <node name="amcl" pkg="amcl" type="amcl" args="scan:=p3dx/laser/scan _use_map_topic:=true _odom_frame_id:=p3dx_tf/odom _base_frame_id:=p3dx_tf/base_link _update_min_a:=0.2" output="screen"/>
 
     <!-- add nodes here -->
-    <node name="obstacle_detect"  pkg="rubbish_robot_project" type="obstacle_detection.py" />
     <node name="task_explore" pkg="rubbish_robot_project" type="task_explore.py"/>
+    <node name="obstacle_detect"  pkg="rubbish_robot_project" type="obstacle_detection.py" />
+    <node name="pathfinding" pkg="rubbish_robot_project" type="pathfinding_node.py"/>
     <node name="image_process" pkg="rubbish_robot_project" type="new_image_processing_node.py"/>
     <node name="movement_node" pkg="rubbish_robot_project" type="movement.py"/>
-    <node name="pathfinding" pkg="rubbish_robot_project" type="pathfinding_node.py"/>
 
 </launch>

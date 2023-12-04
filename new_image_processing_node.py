@@ -33,6 +33,7 @@ class ObjectDetector:
         self.detected = None
         self.can_move = False
         self.first = False
+        self.can_delete = True
 
     def scan_callback(self, data):
         # Process laser scan data to detect objects
@@ -45,7 +46,9 @@ class ObjectDetector:
                 # Stop the robot
                 self.move_robot(0.0, 0.0)
                 rospy.loginfo("Object Reached! Stopped.")
-                gazebo_services.remove_nearest_rubbish()
+                if self.can_delete:
+                    gazebo_services.remove_nearest_rubbish()
+                    self.can_delete = False
 
                 # You can add more logic here to determine the direction of the object
                 # and adjust the robot's movement accordingly.
@@ -80,6 +83,9 @@ class ObjectDetector:
                 rospy.loginfo(f"Recycling coordinates: {recycling_coordinates}")
                 self.decide_robot_movement(recycling_coordinates[0])
                 # Implement robot movement to the recycling coordinates
+
+            if not(detection_result['trash']) and not(detection_result['recycling']):
+                self.can_delete = True
         else: 
             self.first = True
 

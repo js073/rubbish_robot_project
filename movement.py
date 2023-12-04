@@ -47,11 +47,17 @@ class movement:
                 t.linear.x = 0.5
                 t.angular.z = 0
                 # rospy.loginfo("moving forward")
+                f = Float32()
+                f.data = -1
+                self.info.publish(f)
             else: 
                 if self.left_or_right(oe, theta):
                     t.angular.z = 0.5
                 else: 
                     t.angular.z = -.5
+                f = Float32()
+                f.data = -1
+                self.info.publish(f)
             s = "linear: {}, angular: {}, l or r: {}".format(round(abs(oe - theta), 4), round(dist, 4), self.left_or_right(oe, theta))
             # rospy.loginfo(s)
             self.move.publish(t)

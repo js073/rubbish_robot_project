@@ -6,19 +6,21 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PoseWithCovarianceStamped, Pose
 from nav_msgs.msg import OccupancyGrid
 from obstacle_detection_helpers import detect_obstacles, update_map_with_obstacles, process_lidar_data
+from std_msgs.msg import String, Byte
 import map_inflation
 import random
-
+import pickle
+import base64
 
 class ObstacleDetectionNode:
     def __init__(self):
         rospy.init_node('obstacle_detection_node', anonymous=True)
         self.lidar_sub = rospy.Subscriber('/p3dx/laser/scan', LaserScan, self.lidar_callback)
         self.pose_sub = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.pose_callback)
-        self.grid_pub = rospy.Publisher('/grid_update', OccupancyGrid, queue_size=10)
+        self.grid_pub = rospy.Publisher('/grid_update', String, queue_size=10, latch=True)
         self.robot_pose = None
         self.prev = None
-        self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
+        # self.map_sub = rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         self.static_obstacles = []
         self.laser_scan = None
         self.map = None
@@ -51,7 +53,7 @@ class ObstacleDetectionNode:
         # rospy.loginfo("lidar callback triggered")
         self.laser_scan = data
         cp = self.robot_pose
-        if self.robot_pose is None or self.map is None:
+        if self.robot_pose is None:
             rospy.logwarn("Skipping LIDAR processing: Missing pose or static map data")
             return
 
@@ -72,12 +74,17 @@ class ObstacleDetectionNode:
             # rospy.loginfo("Detected obstacles: %s", str(obstacles[:20]))
 
             # rospy.loginfo("First 20 static obstacles: %s", str(self.static_obstacles[:20]))
-            current_map = np.array(self.map)
+            current_map = np.array([])
             grid_map = update_map_with_obstacles(obstacles, current_map, grid_size=(4000, 4000))
             self.publish_grid(grid_map)
             rospy.loginfo("finished update")
 
     def publish_grid(self, grid_map):
+        str_msg = String()
+        ps = pickle.dumps(grid_map)
+        str_msg.data = base64.b64encode(ps).decode('ascii')
+        self.grid_pub.publish(str_msg)
+        return
         grid_msg = OccupancyGrid()
         origin = Pose()
         origin.position.x = -100

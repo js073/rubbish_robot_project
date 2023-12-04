@@ -26,7 +26,18 @@ def heuristic(node, goal):
 
 def astar_dynamic(maze, start, end):
     rospy.loginfo("Starting A* with start: {} and end: {}".format(start, end))
-    start_node = Node(None, start)
+    (sx, sy) = start
+    print(sx)
+    rad = 0
+    while maze[sx][sy] != 0:
+        rad += 1
+        for i in range(-rad, rad+1):
+            for j in range(-rad, rad):
+                if maze[sx + i][sy + j] == 0:
+                    sx = sx + i
+                    sy = sy + i
+                    break
+    start_node = Node(None, (sx, sy))
     end_node = Node(None, end)
 
     open_list = []

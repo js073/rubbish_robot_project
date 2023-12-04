@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <remap from="p3dx/cmd_vel" to="cmd_vel"/>
-    <arg name="world_file" default="$(find rubbish_robot_project)/worlds/collection_world.world" />
+    <arg name="world_file" default="$(find rubbish_robot_project)/worlds/collection_worldv2.world" />
 
     <!-- <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="use_sim_time" value="true"/>
